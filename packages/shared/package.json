@@ -1,0 +1,11 @@
+{
+  "name": "@forge/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "echo \"@forge/shared: no tests yet\" && exit 0"
+  }
+}

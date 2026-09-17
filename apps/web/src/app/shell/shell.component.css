@@ -1,0 +1,120 @@
+:host {
+  display: block;
+  font-family: 'Work Sans', system-ui, sans-serif;
+}
+
+.shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f6f5f1;
+  color: #141b22;
+}
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: #141b22;
+  color: #f6f5f1;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 20px;
+  box-sizing: border-box;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #e8603c;
+  color: #141b22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+}
+
+.brand span {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+nav a {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #c7cdd6;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+nav a.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f6f5f1;
+  font-weight: 600;
+}
+
+.account {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2f6fed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.account-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.logout {
+  border: none;
+  background: transparent;
+  color: #9aa5b1;
+  font-size: 11px;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.content {
+  flex-grow: 1;
+  min-width: 0;
+  padding: 32px 40px;
+  box-sizing: border-box;
+}

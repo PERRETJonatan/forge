@@ -1,0 +1,28 @@
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">F</div>
+      <span>Forge</span>
+    </div>
+
+    <nav>
+      <a routerLink="/calendar" routerLinkActive="active">Calendar</a>
+      <a routerLink="/builder" routerLinkActive="active">Builder</a>
+      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      <a routerLink="/coach" routerLinkActive="active">Coach</a>
+      <a routerLink="/settings" routerLinkActive="active">Settings</a>
+    </nav>
+
+    <div class="account">
+      <div class="avatar">{{ (authService.athlete()?.name ?? '?').charAt(0) }}</div>
+      <div class="account-info">
+        <span class="account-name">{{ authService.athlete()?.name }}</span>
+        <button type="button" class="logout" (click)="logout()">Log out</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

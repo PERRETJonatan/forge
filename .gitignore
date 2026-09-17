@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.angular/
+coverage/
+*.log
+.env
+.env.*.local
+
+# Prisma
+apps/api/prisma/dev.db
+
+.DS_Store
