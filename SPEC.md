@@ -27,6 +27,7 @@ All features below are in scope for v1. No feature list split into phases — se
   (distance/duration/target vs. actual, pace or power over the activity, splits/laps
   when available from Strava), the workout's notes/description, Strava sync status
   (matched activity link, "unmatch" action), and an edit entry point.
+- Calendar sync with phone (ics sync from the main url)
 
 ### 2. Plan import
 
