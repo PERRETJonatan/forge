@@ -16,6 +16,7 @@ model Athlete {
 
   refreshTokens RefreshToken[]
   workouts      Workout[]
+  planImports   PlanImport[]
 
   @@map("athletes")
 }
@@ -68,11 +69,45 @@ model Workout {
   actualDistanceM   Float?
   actualIntensity   String?
 
+  /// Structured warm-up/interval/repeat steps, preserved from an imported plan format when it provides them.
+  structuredIntervals Json?
+
   completed Boolean @default(false)
+
+  planImportId String?
+  planImport   PlanImport? @relation(fields: [planImportId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([athleteId, date])
   @@map("workouts")
+}
+
+enum PlanFormat {
+  TRAININGPEAKS_CSV
+  ICS
+  FIT
+  TCX
+}
+
+model PlanImport {
+  id        String  @id @default(uuid())
+  athleteId String
+  athlete   Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  filename String
+  format   PlanFormat
+
+  createdCount Int @default(0)
+  updatedCount Int @default(0)
+  skippedCount Int @default(0)
+  warnings     String[] @default([])
+
+  importedAt DateTime @default(now())
+
+  workouts Workout[]
+
+  @@index([athleteId, importedAt])
+  @@map("plan_imports")
 }

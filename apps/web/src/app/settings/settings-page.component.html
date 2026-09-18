@@ -1,0 +1,74 @@
+<h1>Settings</h1>
+<p class="subtitle">Profile, thresholds, and Strava connection land in later milestones.</p>
+
+<section class="panel">
+  <h2>Plan import</h2>
+  <p class="hint">
+    Import a training plan from a TrainingPeaks-style CSV export, an ICS calendar, or a structured
+    .fit / .tcx workout file. Re-importing a file updates matching planned workouts instead of
+    duplicating them.
+  </p>
+
+  <div class="import-form">
+    <input type="file" accept=".csv,.ics,.fit,.tcx" (change)="onFileSelected($event)" />
+
+    @if (needsDate()) {
+      <label class="date-field">
+        Schedule on
+        <input type="date" [value]="importDate()" (input)="importDate.set($any($event.target).value)" />
+      </label>
+    }
+
+    <button type="button" [disabled]="!selectedFile() || submitting()" (click)="submit()">
+      {{ submitting() ? 'Importing…' : 'Import' }}
+    </button>
+  </div>
+
+  @if (needsDate()) {
+    <p class="hint small">.fit and .tcx workout files don't carry a scheduled date — pick one above.</p>
+  }
+
+  @if (error()) {
+    <div class="banner error">{{ error() }}</div>
+  }
+
+  @if (lastResult(); as result) {
+    <div class="banner success">
+      Imported {{ result.filename }}: {{ result.createdCount }} added, {{ result.updatedCount }} updated{{
+        result.skippedCount ? ', ' + result.skippedCount + ' skipped' : ''
+      }}.
+      @if (result.warnings.length > 0) {
+        <ul>
+          @for (warning of result.warnings; track warning) {
+            <li>{{ warning }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @if (history().length > 0) {
+    <table class="history">
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Format</th>
+          <th>Added</th>
+          <th>Updated</th>
+          <th>Imported</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of history(); track item.id) {
+          <tr>
+            <td>{{ item.filename }}</td>
+            <td>{{ item.format }}</td>
+            <td>{{ item.createdCount }}</td>
+            <td>{{ item.updatedCount }}</td>
+            <td>{{ item.importedAt | date: 'medium' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

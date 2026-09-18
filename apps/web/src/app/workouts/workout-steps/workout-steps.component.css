@@ -1,0 +1,50 @@
+:host {
+  display: block;
+  font-family: 'Work Sans', system-ui, sans-serif;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leaf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  background: #f6f5f1;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.label {
+  font-weight: 600;
+  color: #141b22;
+}
+
+.meta {
+  display: flex;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.repeat {
+  border-left: 2px solid #e8603c;
+  padding-left: 10px;
+}
+
+.repeat-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e8603c;
+  margin-bottom: 4px;
+}

@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { authRouter } from "./auth/auth.routes.js";
 import { env } from "./env.js";
 import { healthRouter } from "./health/health.routes.js";
+import { planImportRouter } from "./plan-imports/plan-import.routes.js";
 import { workoutRouter } from "./workouts/workout.routes.js";
 
 export function createApp(): Express {
@@ -16,6 +17,7 @@ export function createApp(): Express {
   app.use("/health", healthRouter);
   app.use("/auth", authRouter);
   app.use("/workouts", workoutRouter);
+  app.use("/plan-imports", planImportRouter);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

@@ -53,7 +53,9 @@ function toWorkoutDto(w: Workout) {
     actualDurationSec: w.actualDurationSec,
     actualDistanceM: w.actualDistanceM,
     actualIntensity: w.actualIntensity,
+    structuredIntervals: w.structuredIntervals,
     completed: w.completed,
+    planImportId: w.planImportId,
     createdAt: w.createdAt.toISOString(),
     updatedAt: w.updatedAt.toISOString(),
   };

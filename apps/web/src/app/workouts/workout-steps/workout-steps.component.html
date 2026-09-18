@@ -1,0 +1,27 @@
+<ul class="steps">
+  @for (step of steps; track $index) {
+    <li>
+      @if (step.repeat != null && step.steps) {
+        <div class="repeat">
+          <span class="repeat-badge">{{ step.repeat }}x</span>
+          <app-workout-steps [steps]="step.steps" />
+        </div>
+      } @else {
+        <div class="leaf">
+          <span class="label">{{ step.label || 'Step' }}</span>
+          <span class="meta">
+            @if (formatDuration(step.durationSec); as d) {
+              <span>{{ d }}</span>
+            }
+            @if (formatDistance(step.distanceM); as dist) {
+              <span>{{ dist }}</span>
+            }
+            @if (formatTarget(step); as target) {
+              <span>{{ target }}</span>
+            }
+          </span>
+        </div>
+      }
+    </li>
+  }
+</ul>

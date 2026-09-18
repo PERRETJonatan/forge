@@ -31,7 +31,7 @@ export interface WorkoutFilter {
   completed?: boolean;
 }
 
-function toDate(value: string): Date {
+export function toDate(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 

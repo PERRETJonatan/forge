@@ -25,6 +25,23 @@ export type Discipline = 'SWIM' | 'BIKE' | 'RUN' | 'STRENGTH' | 'OTHER';
 
 export type WorkoutSource = 'MANUAL' | 'IMPORT' | 'STRAVA' | 'COACH_DRAFT';
 
+/**
+ * A structured workout step, preserved from an imported plan format when it
+ * provides one. A leaf step carries its own duration/distance/target; a
+ * repeat group instead carries `repeat` + nested `steps` (e.g. "6x (4min @
+ * threshold, 2min easy)" is a group with repeat: 6 and two leaf steps).
+ */
+export interface WorkoutStep {
+  label?: string;
+  durationSec?: number;
+  distanceM?: number;
+  targetLow?: number;
+  targetHigh?: number;
+  targetUnit?: string;
+  repeat?: number;
+  steps?: WorkoutStep[];
+}
+
 export interface Workout {
   id: string;
   discipline: Discipline;
@@ -38,7 +55,9 @@ export interface Workout {
   actualDurationSec: number | null;
   actualDistanceM: number | null;
   actualIntensity: string | null;
+  structuredIntervals: WorkoutStep[] | null;
   completed: boolean;
+  planImportId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -64,4 +83,17 @@ export interface WorkoutListQuery {
   to?: string;
   discipline?: Discipline;
   completed?: boolean;
+}
+
+export type PlanFormat = 'TRAININGPEAKS_CSV' | 'ICS' | 'FIT' | 'TCX';
+
+export interface PlanImport {
+  id: string;
+  filename: string;
+  format: PlanFormat;
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  warnings: string[];
+  importedAt: string;
 }

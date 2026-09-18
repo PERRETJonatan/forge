@@ -3,6 +3,7 @@ import { LoginComponent } from './auth/login/login.component';
 import { SignupComponent } from './auth/signup/signup.component';
 import { authGuard } from './core/auth.guard';
 import { PlaceholderComponent } from './pages/placeholder/placeholder.component';
+import { SettingsPageComponent } from './settings/settings-page.component';
 import { ShellComponent } from './shell/shell.component';
 import { CalendarPageComponent } from './workouts/calendar-page/calendar-page.component';
 
@@ -36,8 +37,7 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
-        component: PlaceholderComponent,
-        data: { title: 'Settings', note: 'Profile, thresholds, and Strava connection land in later milestones.' },
+        component: SettingsPageComponent,
       },
     ],
   },

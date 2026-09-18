@@ -1,12 +1,14 @@
+import { LowerCasePipe } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import type { CreateWorkoutRequest, Discipline, Workout } from '@forge/shared';
 import { DISCIPLINES, DISCIPLINE_LABELS } from '../discipline';
+import { WorkoutStepsComponent } from '../workout-steps/workout-steps.component';
 
 @Component({
   selector: 'app-workout-form',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, WorkoutStepsComponent, LowerCasePipe],
   templateUrl: './workout-form.component.html',
   styleUrl: './workout-form.component.css',
 })
