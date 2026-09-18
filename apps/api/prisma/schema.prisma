@@ -15,6 +15,7 @@ model Athlete {
   createdAt    DateTime @default(now())
 
   refreshTokens RefreshToken[]
+  workouts      Workout[]
 
   @@map("athletes")
 }
@@ -30,4 +31,48 @@ model RefreshToken {
 
   @@index([athleteId])
   @@map("refresh_tokens")
+}
+
+enum Discipline {
+  SWIM
+  BIKE
+  RUN
+  STRENGTH
+  OTHER
+}
+
+enum WorkoutSource {
+  MANUAL
+  IMPORT
+  STRAVA
+  COACH_DRAFT
+}
+
+model Workout {
+  id        String  @id @default(uuid())
+  athleteId String
+  athlete   Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  discipline Discipline
+  date       DateTime
+  source     WorkoutSource @default(MANUAL)
+
+  title String?
+  notes String?
+
+  targetDurationSec Int?
+  targetDistanceM   Float?
+  targetIntensity   String?
+
+  actualDurationSec Int?
+  actualDistanceM   Float?
+  actualIntensity   String?
+
+  completed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([athleteId, date])
+  @@map("workouts")
 }

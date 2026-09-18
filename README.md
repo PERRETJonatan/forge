@@ -32,4 +32,7 @@ The API tests run against the same local Postgres instance as dev (see `apps/api
 
 ## Build status
 
-Milestone 1 (skeleton + auth) is implemented: signup/login/logout/refresh, JWT-protected API, and an authenticated app shell with placeholder pages for each feature area. See the build plan in this session's history for the full milestone roadmap.
+- Milestone 1 (skeleton + auth): signup/login/logout/refresh, JWT-protected API, authenticated app shell with placeholder pages for each feature area.
+- Milestone 2 (core workout model + calendar): `workout` Prisma model and REST API (`/workouts`, athlete-scoped CRUD + date/discipline/completed filtering), and a calendar page with month/list views, filters, and an add/edit/delete form for manual workouts.
+
+Remaining roadmap (placeholder pages until then): plan import (milestone 3), program builder (milestone 4), Strava sync (milestone 5), fitness dashboard (milestone 6), virtual coach (milestone 7), settings (later milestone).

@@ -1,0 +1,63 @@
+<div class="page-header">
+  <div>
+    <h1>Calendar</h1>
+    <p class="subtitle">Planned and completed workouts.</p>
+  </div>
+  <button type="button" class="add" (click)="openCreate()">+ Add workout</button>
+</div>
+
+@if (error()) {
+  <div class="banner">{{ error() }}</div>
+}
+
+<div class="toolbar">
+  <div class="view-toggle">
+    <button type="button" [class.active]="viewMode() === 'calendar'" (click)="setViewMode('calendar')">
+      Calendar
+    </button>
+    <button type="button" [class.active]="viewMode() === 'list'" (click)="setViewMode('list')">List</button>
+  </div>
+
+  <div class="month-nav">
+    <button type="button" class="nav-btn" (click)="prevMonth()">&lsaquo;</button>
+    <span class="month-label">{{ monthLabel() }}</span>
+    <button type="button" class="nav-btn" (click)="nextMonth()">&rsaquo;</button>
+    <button type="button" class="today-btn" (click)="today()">Today</button>
+  </div>
+
+  <div class="filters">
+    <select [value]="disciplineFilter()" (change)="disciplineFilter.set($any($event.target).value)">
+      <option value="all">All disciplines</option>
+      @for (d of disciplines; track d) {
+        <option [value]="d">{{ disciplineLabels[d] }}</option>
+      }
+    </select>
+    <select [value]="completedFilter()" (change)="completedFilter.set($any($event.target).value)">
+      <option value="all">All</option>
+      <option value="planned">Planned</option>
+      <option value="completed">Completed</option>
+    </select>
+  </div>
+</div>
+
+@if (viewMode() === 'calendar') {
+  <app-month-view
+    [month]="month()"
+    [days]="days()"
+    [workoutsByDate]="workoutsByDate()"
+    (dayClick)="openCreate($event)"
+    (workoutClick)="openEdit($event)"
+  />
+} @else {
+  <app-workout-list [workouts]="filteredWorkouts()" (workoutClick)="openEdit($event)" />
+}
+
+@if (formOpen()) {
+  <app-workout-form
+    [workout]="editingWorkout()"
+    [defaultDate]="formDefaultDate()"
+    (save)="saveWorkout($event)"
+    (delete)="deleteWorkout()"
+    (cancel)="closeForm()"
+  />
+}

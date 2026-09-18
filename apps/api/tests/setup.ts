@@ -8,6 +8,7 @@ config({ path: ".env" });
 // simplification — see SPEC.md, local dev only for v1). Truncate between
 // tests so each test starts from a clean slate.
 beforeEach(async () => {
+  await prisma.workout.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.athlete.deleteMany();
 });

@@ -1,0 +1,83 @@
+<div class="overlay" (click)="cancel.emit()">
+  <form class="panel" [formGroup]="form" (ngSubmit)="submit()" (click)="$event.stopPropagation()">
+    <div class="panel-header">
+      <h2>{{ workout ? 'Edit workout' : 'Add workout' }}</h2>
+      <button type="button" class="close" (click)="cancel.emit()">&times;</button>
+    </div>
+
+    <div class="row">
+      <label>
+        Discipline
+        <select formControlName="discipline">
+          @for (d of disciplines; track d) {
+            <option [value]="d">{{ disciplineLabels[d] }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Date
+        <input type="date" formControlName="date" />
+      </label>
+    </div>
+
+    <label>
+      Title
+      <input type="text" formControlName="title" placeholder="e.g. Threshold ride" />
+    </label>
+
+    <label>
+      Notes
+      <textarea formControlName="notes" rows="3" placeholder="Free-text description"></textarea>
+    </label>
+
+    <fieldset>
+      <legend>Planned</legend>
+      <div class="row">
+        <label>
+          Duration (min)
+          <input type="number" min="0" formControlName="targetDurationMin" />
+        </label>
+        <label>
+          Distance (m)
+          <input type="number" min="0" formControlName="targetDistanceM" />
+        </label>
+      </div>
+      <label>
+        Target intensity
+        <input type="text" formControlName="targetIntensity" placeholder="e.g. Zone 3 / 250W" />
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Actual</legend>
+      <div class="row">
+        <label>
+          Duration (min)
+          <input type="number" min="0" formControlName="actualDurationMin" />
+        </label>
+        <label>
+          Distance (m)
+          <input type="number" min="0" formControlName="actualDistanceM" />
+        </label>
+      </div>
+      <label>
+        Actual intensity
+        <input type="text" formControlName="actualIntensity" placeholder="e.g. avg 245W" />
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" formControlName="completed" />
+        Completed
+      </label>
+    </fieldset>
+
+    <div class="actions">
+      @if (workout) {
+        <button type="button" class="delete" (click)="delete.emit()">Delete</button>
+      }
+      <div class="spacer"></div>
+      <button type="button" class="secondary" (click)="cancel.emit()">Cancel</button>
+      <button type="submit" [disabled]="submitting()">{{ workout ? 'Save' : 'Add workout' }}</button>
+    </div>
+  </form>
+</div>

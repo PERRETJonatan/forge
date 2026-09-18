@@ -1,0 +1,123 @@
+:host {
+  display: block;
+  font-family: 'Work Sans', system-ui, sans-serif;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+h1 {
+  margin: 0 0 4px 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #141b22;
+}
+
+.subtitle {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.add {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #141b22;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.banner {
+  background: #fff4ec;
+  color: #b6461f;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.view-toggle {
+  display: flex;
+  background: #eeece4;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.view-toggle button {
+  border: none;
+  background: transparent;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.view-toggle button.active {
+  background: #ffffff;
+  color: #141b22;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.month-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #141b22;
+  min-width: 140px;
+  text-align: center;
+}
+
+.nav-btn,
+.today-btn {
+  border: 1px solid #e4e1d8;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #141b22;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+}
+
+.filters select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e4e1d8;
+  font-size: 13px;
+  font-family: inherit;
+  color: #141b22;
+  background: #ffffff;
+}

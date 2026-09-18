@@ -1,0 +1,95 @@
+:host {
+  display: block;
+  font-family: 'Work Sans', system-ui, sans-serif;
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  margin-bottom: 4px;
+}
+
+.weekday {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-align: center;
+  padding: 4px 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: #e4e1d8;
+  border: 1px solid #e4e1d8;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.cell {
+  background: #ffffff;
+  min-height: 96px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cell:hover {
+  background: #fbfaf7;
+}
+
+.cell.outside {
+  background: #f6f5f1;
+}
+
+.cell.outside .day-number {
+  color: #b3ada0;
+}
+
+.day-number {
+  font-size: 12px;
+  font-weight: 600;
+  color: #141b22;
+}
+
+.cell.today .day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #141b22;
+  color: #f6f5f1;
+}
+
+.workouts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.workout-chip {
+  border: none;
+  border-radius: 5px;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: inherit;
+}
+
+.workout-chip.completed {
+  opacity: 0.55;
+  text-decoration: line-through;
+}

@@ -1,0 +1,31 @@
+<div class="weekdays">
+  @for (label of weekdayLabels; track label) {
+    <div class="weekday">{{ label }}</div>
+  }
+</div>
+
+<div class="grid">
+  @for (day of days; track dateKey(day)) {
+    <div
+      class="cell"
+      [class.outside]="!isCurrentMonth(day)"
+      [class.today]="dateKey(day) === today"
+      (click)="onDayClick(day)"
+    >
+      <span class="day-number">{{ day.getDate() }}</span>
+      <div class="workouts">
+        @for (workout of workoutsFor(day); track workout.id) {
+          <button
+            type="button"
+            class="workout-chip"
+            [style.background]="disciplineColors[workout.discipline]"
+            [class.completed]="workout.completed"
+            (click)="onWorkoutClick($event, workout)"
+          >
+            {{ workout.title || disciplineLabels[workout.discipline] }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>

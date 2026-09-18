@@ -4,6 +4,7 @@ import { SignupComponent } from './auth/signup/signup.component';
 import { authGuard } from './core/auth.guard';
 import { PlaceholderComponent } from './pages/placeholder/placeholder.component';
 import { ShellComponent } from './shell/shell.component';
+import { CalendarPageComponent } from './workouts/calendar-page/calendar-page.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -16,8 +17,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'calendar' },
       {
         path: 'calendar',
-        component: PlaceholderComponent,
-        data: { title: 'Calendar', note: 'Workout calendar lands in milestone 2.' },
+        component: CalendarPageComponent,
       },
       {
         path: 'builder',

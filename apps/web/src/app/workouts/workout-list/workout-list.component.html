@@ -1,0 +1,24 @@
+@if (workouts.length === 0) {
+  <p class="empty">No workouts match the current filters.</p>
+} @else {
+  <div class="list">
+    @for (workout of workouts; track workout.id) {
+      <button type="button" class="row" [class.completed]="workout.completed" (click)="workoutClick.emit(workout)">
+        <span class="date">{{ formatDate(workout.date) }}</span>
+        <span class="badge" [style.background]="disciplineColors[workout.discipline]">
+          {{ disciplineLabels[workout.discipline] }}
+        </span>
+        <span class="title">{{ workout.title || disciplineLabels[workout.discipline] }}</span>
+        <span class="meta">
+          @if (formatDuration(workout.actualDurationSec ?? workout.targetDurationSec); as d) {
+            <span>{{ d }}</span>
+          }
+          @if (formatDistance(workout.actualDistanceM ?? workout.targetDistanceM); as dist) {
+            <span>{{ dist }}</span>
+          }
+        </span>
+        <span class="status">{{ workout.completed ? 'Done' : 'Planned' }}</span>
+      </button>
+    }
+  </div>
+}
