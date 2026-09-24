@@ -17,4 +17,8 @@ RUN npm run build --workspace apps/web
 FROM nginx:1.27-alpine
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/apps/web/dist/web/browser /usr/share/nginx/html
+# Regenerates env.js from $API_URL on every container start (nginx image runs
+# every script in /docker-entrypoint.d/ before starting), so apiUrl is picked
+# per deployment instead of baked in at build time.
+COPY --chmod=755 apps/web/docker/40-env-js.sh /docker-entrypoint.d/40-env-js.sh
 EXPOSE 80
