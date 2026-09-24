@@ -1,9 +1,12 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import type { PlanImport } from '@forge/shared';
 import { CalendarFeedService } from '../calendar-feed/calendar-feed.service';
 import { PlanImportService } from '../plan-import/plan-import.service';
+import { formatPace, parsePace } from '../shared/pace';
+import { ThresholdsService } from '../thresholds/thresholds.service';
 
 const DATELESS_EXTENSIONS = new Set(['fit', 'tcx']);
 
@@ -14,13 +17,25 @@ function extensionOf(filename: string): string {
 @Component({
   selector: 'app-settings-page',
   standalone: true,
-  imports: [DatePipe],
+  imports: [DatePipe, ReactiveFormsModule],
   templateUrl: './settings-page.component.html',
   styleUrl: './settings-page.component.css',
 })
 export class SettingsPageComponent {
   private planImportService = inject(PlanImportService);
   private calendarFeedService = inject(CalendarFeedService);
+  private thresholdsService = inject(ThresholdsService);
+  private fb = inject(FormBuilder);
+
+  readonly thresholdsForm = this.fb.group({
+    ftpWatts: [null as number | null],
+    runThresholdPace: [''],
+    swimThresholdPace: [''],
+    thresholdHr: [null as number | null],
+  });
+  readonly thresholdsSaving = signal(false);
+  readonly thresholdsSaved = signal(false);
+  readonly thresholdsError = signal<string | null>(null);
 
   readonly feedUrl = signal<string | null>(null);
   readonly feedBusy = signal(false);
@@ -42,6 +57,48 @@ export class SettingsPageComponent {
   constructor() {
     void this.loadHistory();
     void this.loadFeedStatus();
+    void this.loadThresholds();
+  }
+
+  private async loadThresholds(): Promise<void> {
+    try {
+      const t = await this.thresholdsService.get();
+      this.thresholdsForm.reset({
+        ftpWatts: t.ftpWatts,
+        runThresholdPace: formatPace(t.runThresholdPaceSecPerKm),
+        swimThresholdPace: formatPace(t.swimThresholdPaceSec100m),
+        thresholdHr: t.thresholdHr,
+      });
+    } catch {
+      // The save button will surface any real error; a failed initial load just leaves blanks.
+    }
+  }
+
+  async saveThresholds(): Promise<void> {
+    this.thresholdsSaving.set(true);
+    this.thresholdsError.set(null);
+    this.thresholdsSaved.set(false);
+    try {
+      const v = this.thresholdsForm.getRawValue();
+      const updated = await this.thresholdsService.update({
+        ftpWatts: v.ftpWatts,
+        runThresholdPaceSecPerKm: parsePace(v.runThresholdPace ?? ''),
+        swimThresholdPaceSec100m: parsePace(v.swimThresholdPace ?? ''),
+        thresholdHr: v.thresholdHr,
+      });
+      this.thresholdsForm.reset({
+        ftpWatts: updated.ftpWatts,
+        runThresholdPace: formatPace(updated.runThresholdPaceSecPerKm),
+        swimThresholdPace: formatPace(updated.swimThresholdPaceSec100m),
+        thresholdHr: updated.thresholdHr,
+      });
+      this.thresholdsSaved.set(true);
+      setTimeout(() => this.thresholdsSaved.set(false), 2000);
+    } catch {
+      this.thresholdsError.set('Could not save thresholds. Check the pace format (mm:ss) and try again.');
+    } finally {
+      this.thresholdsSaving.set(false);
+    }
   }
 
   private async loadHistory(): Promise<void> {

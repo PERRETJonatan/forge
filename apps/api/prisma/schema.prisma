@@ -18,9 +18,17 @@ model Athlete {
   /// Null until the athlete first enables sync; regenerating invalidates the old feed URL.
   calendarFeedToken String? @unique
 
-  refreshTokens RefreshToken[]
-  workouts      Workout[]
-  planImports   PlanImport[]
+  /// Thresholds used everywhere a %-of-threshold target/TSS is computed (program builder now;
+  /// dashboard TSS/CTL/ATL and coach context in later milestones). All null until set.
+  ftpWatts                 Int?
+  runThresholdPaceSecPerKm Int?
+  swimThresholdPaceSec100m Int?
+  thresholdHr              Int?
+
+  refreshTokens    RefreshToken[]
+  workouts         Workout[]
+  planImports      PlanImport[]
+  workoutTemplates WorkoutTemplate[]
 
   @@map("athletes")
 }
@@ -103,9 +111,9 @@ model PlanImport {
   filename String
   format   PlanFormat
 
-  createdCount Int @default(0)
-  updatedCount Int @default(0)
-  skippedCount Int @default(0)
+  createdCount Int      @default(0)
+  updatedCount Int      @default(0)
+  skippedCount Int      @default(0)
   warnings     String[] @default([])
 
   importedAt DateTime @default(now())
@@ -114,4 +122,26 @@ model PlanImport {
 
   @@index([athleteId, importedAt])
   @@map("plan_imports")
+}
+
+/// A reusable structured workout built in the program builder, saved to apply to another
+/// date or repeat on a schedule. Applying one creates an ordinary `Workout` (source: MANUAL)
+/// with these steps copied into `structuredIntervals` -- the template itself is never edited
+/// by that Workout going forward.
+model WorkoutTemplate {
+  id        String  @id @default(uuid())
+  athleteId String
+  athlete   Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  name       String
+  discipline Discipline
+
+  /// WorkoutStep[] (see @forge/shared) -- same shape as Workout.structuredIntervals.
+  steps Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([athleteId])
+  @@map("workout_templates")
 }

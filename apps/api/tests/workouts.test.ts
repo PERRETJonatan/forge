@@ -35,6 +35,19 @@ describe("POST /workouts", () => {
     expect(res.body.completed).toBe(false);
   });
 
+  it("accepts structured steps built by the program builder", async () => {
+    const steps = [
+      { label: "Warm-up", durationSec: 600 },
+      { repeat: 4, steps: [{ label: "On", durationSec: 240, targetLow: 105, targetUnit: "power", targetMode: "percent" }] },
+    ];
+    const res = await request(app)
+      .post("/workouts")
+      .set(auth(token))
+      .send({ discipline: "BIKE", date: "2026-09-20", structuredIntervals: steps });
+    expect(res.status).toBe(201);
+    expect(res.body.structuredIntervals).toEqual(steps);
+  });
+
   it("rejects an invalid payload", async () => {
     const res = await request(app)
       .post("/workouts")

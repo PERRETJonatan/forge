@@ -1,4 +1,6 @@
+import type { WorkoutStep } from "@forge/shared";
 import type { Discipline, Workout } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../db.js";
 
 export class WorkoutError extends Error {
@@ -21,7 +23,14 @@ export interface WorkoutInput {
   actualDurationSec?: number | null;
   actualDistanceM?: number | null;
   actualIntensity?: string | null;
+  structuredIntervals?: WorkoutStep[] | null;
   completed?: boolean;
+}
+
+/** Prisma's Json columns need JsonNull, not plain `null`, to actually write SQL NULL. */
+function structuredIntervalsValue(steps: WorkoutStep[] | null | undefined) {
+  if (steps === null) return Prisma.JsonNull;
+  return steps as unknown as Prisma.InputJsonValue;
 }
 
 export interface WorkoutFilter {
@@ -77,6 +86,7 @@ export async function createWorkout(athleteId: string, input: WorkoutInput): Pro
       actualDurationSec: input.actualDurationSec ?? null,
       actualDistanceM: input.actualDistanceM ?? null,
       actualIntensity: input.actualIntensity ?? null,
+      structuredIntervals: structuredIntervalsValue(input.structuredIntervals),
       completed: input.completed ?? false,
     },
   });
@@ -101,6 +111,9 @@ export async function updateWorkout(
       ...(input.actualDurationSec !== undefined ? { actualDurationSec: input.actualDurationSec } : {}),
       ...(input.actualDistanceM !== undefined ? { actualDistanceM: input.actualDistanceM } : {}),
       ...(input.actualIntensity !== undefined ? { actualIntensity: input.actualIntensity } : {}),
+      ...(input.structuredIntervals !== undefined
+        ? { structuredIntervals: structuredIntervalsValue(input.structuredIntervals) }
+        : {}),
       ...(input.completed !== undefined ? { completed: input.completed } : {}),
     },
   });

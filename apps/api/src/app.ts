@@ -6,6 +6,8 @@ import { calendarFeedRouter } from "./calendar-feed/calendar-feed.routes.js";
 import { env } from "./env.js";
 import { healthRouter } from "./health/health.routes.js";
 import { planImportRouter } from "./plan-imports/plan-import.routes.js";
+import { thresholdsRouter } from "./thresholds/thresholds.routes.js";
+import { workoutTemplateRouter } from "./workout-templates/workout-template.routes.js";
 import { workoutRouter } from "./workouts/workout.routes.js";
 
 export function createApp(): Express {
@@ -20,6 +22,8 @@ export function createApp(): Express {
   app.use("/workouts", workoutRouter);
   app.use("/plan-imports", planImportRouter);
   app.use("/calendar-feed", calendarFeedRouter);
+  app.use("/me/thresholds", thresholdsRouter);
+  app.use("/workout-templates", workoutTemplateRouter);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

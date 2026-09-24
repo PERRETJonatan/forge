@@ -3,6 +3,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { asyncHandler } from "../asyncHandler.js";
 import { requireAuth } from "../auth/middleware.js";
+import { workoutStepsSchema } from "./workout-step.schema.js";
 import * as workoutService from "./workout.service.js";
 import { WorkoutError } from "./workout.service.js";
 
@@ -23,6 +24,7 @@ const workoutFieldsSchema = {
   actualDurationSec: z.number().int().nonnegative().nullable().optional(),
   actualDistanceM: z.number().nonnegative().nullable().optional(),
   actualIntensity: z.string().max(200).nullable().optional(),
+  structuredIntervals: workoutStepsSchema.nullable().optional(),
   completed: z.boolean().optional(),
 };
 
@@ -39,7 +41,7 @@ const listQuerySchema = z.object({
     .transform((v) => (v === undefined ? undefined : v === "true")),
 });
 
-function toWorkoutDto(w: Workout) {
+export function toWorkoutDto(w: Workout) {
   return {
     id: w.id,
     discipline: w.discipline,

@@ -3,6 +3,7 @@ import { LoginComponent } from './auth/login/login.component';
 import { SignupComponent } from './auth/signup/signup.component';
 import { authGuard } from './core/auth.guard';
 import { PlaceholderComponent } from './pages/placeholder/placeholder.component';
+import { ProgramBuilderPageComponent } from './program-builder/program-builder-page.component';
 import { SettingsPageComponent } from './settings/settings-page.component';
 import { ShellComponent } from './shell/shell.component';
 import { CalendarPageComponent } from './workouts/calendar-page/calendar-page.component';
@@ -22,18 +23,17 @@ export const routes: Routes = [
       },
       {
         path: 'builder',
-        component: PlaceholderComponent,
-        data: { title: 'Program builder', note: 'Structured workout builder lands in milestone 4.' },
+        component: ProgramBuilderPageComponent,
       },
       {
         path: 'dashboard',
         component: PlaceholderComponent,
-        data: { title: 'Fitness dashboard', note: 'CTL/ATL/TSB dashboard lands in milestone 6.' },
+        data: { title: 'Fitness dashboard', note: 'CTL/ATL/TSB dashboard lands in milestone 7.' },
       },
       {
         path: 'coach',
         component: PlaceholderComponent,
-        data: { title: 'Coach', note: 'Virtual coach chat lands in milestone 7.' },
+        data: { title: 'Coach', note: 'Virtual coach chat lands in milestone 8.' },
       },
       {
         path: 'settings',

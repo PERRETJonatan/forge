@@ -43,5 +43,17 @@ The API tests run against the same local Postgres instance as dev (see `apps/api
   unguessable token in the path is the access control); regenerating rotates the token and
   invalidates the old URL. Backed by `apps/api/src/calendar-feed` (hand-rolled RFC 5545 writer,
   no new dependency — workouts are date-only so every event is an all-day VEVENT).
+- Milestone 5 (program builder): structured workout editor at `/builder` -- assemble a workout
+  from steps and one level of repeat groups (e.g. "4x (4min on, 2min off)", matching what every
+  plan-import parser actually produces), targeting power/pace/HR/RPE per discipline as an
+  absolute value or a %-of-threshold, with a live TSS estimate as you build
+  (`packages/shared/src/tss.ts`, same `IF^2 x hours x 100` model the dashboard will use).
+  Save a workout as a reusable template, apply it to a date, or repeat it weekly for N weeks;
+  built workouts land in the same `workout` model as imported ones (`source: MANUAL`) and
+  appear identically in calendar/list views. Backed by `AthleteThresholds` (new Settings →
+  Thresholds & zones panel: FTP, threshold pace, threshold HR) and `/workout-templates`
+  (`apps/api/src/workout-templates`). Coach-assisted drafting is deferred to the coach milestone.
+  - Single value per target (no low/high range) and one level of repeat nesting are deliberate
+    v1 simplifications -- see `apps/web/src/app/program-builder/program-builder-page.component.ts`.
 
-Remaining roadmap (placeholder pages until then): program builder (milestone 5), Strava sync (milestone 6), fitness dashboard (milestone 7), virtual coach (milestone 8), settings profile/thresholds/Strava tabs (later milestone).
+Remaining roadmap (placeholder pages until then): Strava sync (milestone 6), fitness dashboard (milestone 7), virtual coach (milestone 8), settings profile/Strava tabs (later milestone).

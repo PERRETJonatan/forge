@@ -1,0 +1,250 @@
+<h1>Program builder</h1>
+<p class="subtitle">
+  Assemble a workout from steps, save it as a reusable template, and add it to your calendar.
+  Coach-assisted drafting lands with the virtual coach in a later milestone.
+</p>
+
+<div class="layout">
+  <section class="panel builder">
+    <div class="builder-header">
+      <label class="discipline-field">
+        Discipline
+        <select [value]="discipline()" (change)="onDisciplineChange($any($event.target).value)">
+          @for (d of disciplines; track d) {
+            <option [value]="d">{{ disciplineLabels[d] }}</option>
+          }
+        </select>
+      </label>
+      <input
+        type="text"
+        class="title-field"
+        placeholder="Workout name (e.g. Sweet spot 4x4)"
+        [value]="workoutTitle()"
+        (input)="workoutTitle.set($any($event.target).value)"
+      />
+    </div>
+
+    <ol class="blocks">
+      @for (block of blocks(); track $index; let blockIndex = $index) {
+        <li>
+          @if (isGroup(block)) {
+            <div class="group">
+              <div class="group-header">
+                <span class="repeat-badge">
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    [value]="block.repeat"
+                    (input)="updateGroupRepeat(blockIndex, +$any($event.target).value)"
+                  />x
+                </span>
+                <div class="block-actions">
+                  <button type="button" title="Move up" (click)="moveBlock(blockIndex, -1)">↑</button>
+                  <button type="button" title="Move down" (click)="moveBlock(blockIndex, 1)">↓</button>
+                  <button type="button" class="danger" title="Remove group" (click)="removeBlock(blockIndex)">✕</button>
+                </div>
+              </div>
+
+              <ol class="group-steps">
+                @for (step of block.steps; track $index; let stepIndex = $index) {
+                  <li>
+                    <ng-container
+                      *ngTemplateOutlet="
+                        stepRow;
+                        context: {
+                          step: step,
+                          setLow: setGroupStepTargetLow.bind(this, blockIndex, stepIndex),
+                          update: updateGroupStep.bind(this, blockIndex, stepIndex),
+                          remove: block.steps.length > 1 ? removeStepFromGroup.bind(this, blockIndex, stepIndex) : null,
+                        }
+                      "
+                    />
+                  </li>
+                }
+              </ol>
+              <button type="button" class="add-step" (click)="addStepToGroup(blockIndex)">+ Add step to group</button>
+            </div>
+          } @else {
+            <div class="leaf-block">
+              <ng-container
+                *ngTemplateOutlet="
+                  stepRow;
+                  context: {
+                    step: block,
+                    setLow: setLeafTargetLow.bind(this, blockIndex),
+                    update: updateLeaf.bind(this, blockIndex),
+                    remove: removeBlock.bind(this, blockIndex),
+                  }
+                "
+              />
+              <div class="block-actions">
+                <button type="button" title="Move up" (click)="moveBlock(blockIndex, -1)">↑</button>
+                <button type="button" title="Move down" (click)="moveBlock(blockIndex, 1)">↓</button>
+              </div>
+            </div>
+          }
+        </li>
+      }
+    </ol>
+
+    <div class="add-buttons">
+      <button type="button" (click)="addLeaf()">+ Add step</button>
+      <button type="button" (click)="addGroup()">+ Add repeat group</button>
+    </div>
+
+    <div class="summary">
+      <span><strong>{{ formatDuration(summary().durationSec) }}</strong> total</span>
+      @if (summary().distanceM > 0) {
+        <span><strong>{{ formatDistance(summary().distanceM) }}</strong></span>
+      }
+      <span class="tss"><strong>~{{ summary().estimatedTss | number: '1.0-0' }}</strong> TSS estimate</span>
+    </div>
+
+    <div class="save-row">
+      <label class="date-field">
+        Add to calendar on
+        <input type="date" [value]="workoutDate()" (input)="workoutDate.set($any($event.target).value)" />
+      </label>
+      <button type="button" [disabled]="blocks().length === 0 || saving()" (click)="addToCalendar()">
+        Add to calendar
+      </button>
+      <button type="button" class="secondary" [disabled]="blocks().length === 0 || saving()" (click)="saveAsTemplate()">
+        {{ templateId() ? 'Update template' : 'Save as template' }}
+      </button>
+    </div>
+
+    @if (savedMessage()) {
+      <div class="banner success">{{ savedMessage() }}</div>
+    }
+    @if (error()) {
+      <div class="banner error">{{ error() }}</div>
+    }
+  </section>
+
+  <section class="panel templates">
+    <h2>Saved templates</h2>
+    @if (templates().length === 0) {
+      <p class="hint">No templates saved yet -- build a workout and "Save as template" to reuse it.</p>
+    }
+    <ul class="template-list">
+      @for (template of templates(); track template.id) {
+        <li>
+          <div class="template-row">
+            <div class="template-info">
+              <span class="template-name">{{ template.name }}</span>
+              <span class="template-discipline">{{ disciplineLabels[template.discipline] }}</span>
+            </div>
+            <div class="template-actions">
+              <button type="button" (click)="loadTemplate(template)">Load</button>
+              <button type="button" class="danger" (click)="deleteTemplate(template)">Delete</button>
+            </div>
+          </div>
+          <div class="apply-row">
+            <input
+              type="date"
+              [value]="applyDateFor(template)"
+              (input)="setApplyDate(template, $any($event.target).value)"
+            />
+            <label class="weeks-field">
+              x
+              <input
+                type="number"
+                min="1"
+                max="52"
+                [value]="weeksFor(template)"
+                (input)="setWeeksFor(template, +$any($event.target).value)"
+              />
+              week(s)
+            </label>
+            <button type="button" [disabled]="saving()" (click)="applyTemplate(template)">Add</button>
+          </div>
+        </li>
+      }
+    </ul>
+  </section>
+</div>
+
+<ng-template #stepRow let-step="step" let-setLow="setLow" let-update="update" let-remove="remove">
+  <div class="step-row">
+    <input
+      type="text"
+      class="label-field"
+      placeholder="Label (e.g. Warm-up)"
+      [value]="step.label ?? ''"
+      (input)="update({ label: $any($event.target).value })"
+    />
+
+    <label class="field">
+      <span>Duration</span>
+      <div class="unit-field">
+        <input
+          type="number"
+          min="0"
+          [value]="durationMinutes(step)"
+          (input)="update({ durationSec: $any($event.target).value ? +$any($event.target).value * 60 : undefined })"
+        />
+        <span class="unit">min</span>
+      </div>
+    </label>
+
+    <label class="field">
+      <span>Distance</span>
+      <div class="unit-field">
+        <input
+          type="number"
+          min="0"
+          [value]="step.distanceM ?? ''"
+          (input)="update({ distanceM: $any($event.target).value ? +$any($event.target).value : undefined })"
+        />
+        <span class="unit">m</span>
+      </div>
+    </label>
+
+    <label class="field">
+      <span>Target</span>
+      <select
+        [value]="step.targetUnit ?? ''"
+        (change)="update({ targetUnit: $any($event.target).value || undefined, targetMode: undefined, targetLow: undefined, targetHigh: undefined })"
+      >
+        <option value="">None</option>
+        @for (u of targetUnits(); track u.value) {
+          <option [value]="u.value">{{ u.label }}</option>
+        }
+      </select>
+    </label>
+
+    @if (step.targetUnit) {
+      <label class="field">
+        <span>As</span>
+        <select
+          [value]="step.targetMode ?? 'absolute'"
+          (change)="update({ targetMode: $any($event.target).value })"
+        >
+          <option value="absolute">Absolute</option>
+          @if (targetUnitFor(step)?.supportsPercent) {
+            <option value="percent">% of threshold</option>
+          }
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Value</span>
+        <div class="unit-field">
+          <input type="text" [value]="targetLowText(step)" (input)="setLow(step, $any($event.target).value)" />
+          <span class="unit">
+            {{ step.targetMode === 'percent' ? '%' : targetUnitFor(step)?.unit }}
+          </span>
+        </div>
+      </label>
+
+      @if (absoluteFromPercent(step); as abs) {
+        <span class="absolute-hint">= {{ abs }}</span>
+      }
+    }
+
+    @if (remove) {
+      <button type="button" class="danger remove-step" title="Remove step" (click)="remove()">✕</button>
+    }
+  </div>
+</ng-template>

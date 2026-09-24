@@ -1,5 +1,54 @@
 <h1>Settings</h1>
-<p class="subtitle">Profile, thresholds, and Strava connection land in later milestones.</p>
+<p class="subtitle">Profile and Strava connection land in later milestones.</p>
+
+<section class="panel">
+  <h2>Thresholds &amp; zones</h2>
+  <p class="hint">
+    Used to turn a %-of-threshold step in the program builder into an absolute pace/power/HR
+    target, and to estimate a workout's TSS as you build it. Leave any of these blank if you
+    don't know them yet — steps without a matching threshold just fall back to an easy-effort
+    estimate.
+  </p>
+
+  <form class="thresholds-form" [formGroup]="thresholdsForm" (ngSubmit)="saveThresholds()">
+    <label>
+      FTP (bike)
+      <div class="unit-field">
+        <input type="number" min="1" formControlName="ftpWatts" placeholder="e.g. 250" />
+        <span class="unit">W</span>
+      </div>
+    </label>
+    <label>
+      Threshold pace (run)
+      <div class="unit-field">
+        <input type="text" formControlName="runThresholdPace" placeholder="mm:ss" />
+        <span class="unit">/km</span>
+      </div>
+    </label>
+    <label>
+      Threshold pace (swim, CSS)
+      <div class="unit-field">
+        <input type="text" formControlName="swimThresholdPace" placeholder="mm:ss" />
+        <span class="unit">/100m</span>
+      </div>
+    </label>
+    <label>
+      Threshold heart rate
+      <div class="unit-field">
+        <input type="number" min="1" formControlName="thresholdHr" placeholder="e.g. 168" />
+        <span class="unit">bpm</span>
+      </div>
+    </label>
+
+    <button type="submit" [disabled]="thresholdsSaving()">
+      {{ thresholdsSaving() ? 'Saving…' : thresholdsSaved() ? 'Saved!' : 'Save thresholds' }}
+    </button>
+  </form>
+
+  @if (thresholdsError()) {
+    <div class="banner error">{{ thresholdsError() }}</div>
+  }
+</section>
 
 <section class="panel">
   <h2>Calendar sync</h2>
