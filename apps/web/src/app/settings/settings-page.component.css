@@ -25,6 +25,10 @@ h1 {
   max-width: 640px;
 }
 
+.panel + .panel {
+  margin-top: 20px;
+}
+
 h2 {
   margin: 0 0 8px 0;
   font-family: 'Space Grotesk', sans-serif;
@@ -87,6 +91,51 @@ button {
 button:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+button.secondary {
+  background: #ffffff;
+  color: #141b22;
+  border: 1px solid #e4e1d8;
+}
+
+button.secondary.danger {
+  color: #b6461f;
+}
+
+.feed-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.feed-row input[type='text'] {
+  flex: 1 1 320px;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #e4e1d8;
+  font-size: 13px;
+  font-family: inherit;
+  color: #141b22;
+  background: #faf9f5;
+}
+
+.subscribe-link {
+  padding: 9px 16px;
+  border-radius: 8px;
+  background: #141b22;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.feed-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .banner {

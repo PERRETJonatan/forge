@@ -2,6 +2,45 @@
 <p class="subtitle">Profile, thresholds, and Strava connection land in later milestones.</p>
 
 <section class="panel">
+  <h2>Calendar sync</h2>
+  <p class="hint">
+    Subscribe to your Forge calendar from your phone or another calendar app (Apple/iCloud
+    Calendar, Google Calendar, Outlook) to see your planned and completed workouts alongside
+    everything else. The feed is read-only and refreshes itself periodically — edits still
+    happen in Forge.
+  </p>
+
+  @if (feedUrl(); as url) {
+    <div class="feed-row">
+      <input type="text" readonly [value]="url" (click)="$any($event.target).select()" />
+      <button type="button" (click)="copyFeedUrl(url)">{{ feedCopied() ? 'Copied!' : 'Copy' }}</button>
+      <a class="subscribe-link" [href]="webcalUrl(url)">Subscribe</a>
+    </div>
+    <div class="feed-actions">
+      <button type="button" class="secondary" [disabled]="feedBusy()" (click)="regenerateFeed()">
+        Regenerate link
+      </button>
+      <button type="button" class="secondary danger" [disabled]="feedBusy()" (click)="disableFeed()">
+        Turn off
+      </button>
+    </div>
+    <p class="hint small">
+      Anyone with this link can see your workouts — keep it private, and regenerate it if it
+      ever leaks (this breaks the old link, so you'll need to re-subscribe from your calendar
+      app with the new one).
+    </p>
+  } @else {
+    <button type="button" [disabled]="feedBusy()" (click)="enableFeed()">
+      {{ feedBusy() ? 'Setting up…' : 'Enable calendar sync' }}
+    </button>
+  }
+
+  @if (feedError()) {
+    <div class="banner error">{{ feedError() }}</div>
+  }
+</section>
+
+<section class="panel">
   <h2>Plan import</h2>
   <p class="hint">
     Import a training plan from a TrainingPeaks-style CSV export, an ICS calendar, or a structured

@@ -14,6 +14,10 @@ model Athlete {
   name         String
   createdAt    DateTime @default(now())
 
+  /// Secret token for the read-only ICS calendar feed URL (`/calendar-feed/:token.ics`).
+  /// Null until the athlete first enables sync; regenerating invalidates the old feed URL.
+  calendarFeedToken String? @unique
+
   refreshTokens RefreshToken[]
   workouts      Workout[]
   planImports   PlanImport[]

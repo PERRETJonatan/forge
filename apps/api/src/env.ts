@@ -12,4 +12,6 @@ export const env = {
   jwtAccessSecret: required("JWT_ACCESS_SECRET"),
   jwtRefreshSecret: required("JWT_REFRESH_SECRET"),
   webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:4200",
+  /** Base URL the API itself is reachable at, used to build the absolute calendar feed URL. */
+  apiPublicUrl: process.env.API_PUBLIC_URL ?? "http://localhost:3000",
 };

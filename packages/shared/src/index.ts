@@ -87,6 +87,10 @@ export interface WorkoutListQuery {
 
 export type PlanFormat = 'TRAININGPEAKS_CSV' | 'ICS' | 'FIT' | 'TCX';
 
+export interface CalendarFeedStatus {
+  url: string | null;
+}
+
 export interface PlanImport {
   id: string;
   filename: string;
