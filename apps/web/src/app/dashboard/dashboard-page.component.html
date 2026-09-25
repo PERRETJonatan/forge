@@ -1,5 +1,5 @@
 <h1>Dashboard</h1>
-<p class="subtitle">Fitness, fatigue and form from your training load (TSS), with your plan projected ahead.</p>
+<p class="subtitle">Fitness, fatigue and form from your training load (<app-term key="tss">TSS</app-term>), with your plan projected ahead.</p>
 
 <div class="filters" role="group" aria-label="Date range">
   @for (preset of presets; track preset.days) {
@@ -46,21 +46,21 @@
 
       @if (tiles(); as t) {
         <section class="panel tile">
-          <span class="tile-label">Fitness (CTL)</span>
+          <span class="tile-label">Fitness (<app-term key="ctl">CTL</app-term>)</span>
           <span class="tile-value">{{ t.ctl.value | number: '1.0-0' }}</span>
           @if (t.ctl.delta !== null) {
             <span class="tile-delta">{{ t.ctl.delta > 0 ? '+' : '' }}{{ t.ctl.delta | number: '1.0-1' }} vs 7 days ago</span>
           }
         </section>
         <section class="panel tile">
-          <span class="tile-label">Fatigue (ATL)</span>
+          <span class="tile-label">Fatigue (<app-term key="atl">ATL</app-term>)</span>
           <span class="tile-value">{{ t.atl.value | number: '1.0-0' }}</span>
           @if (t.atl.delta !== null) {
             <span class="tile-delta">{{ t.atl.delta > 0 ? '+' : '' }}{{ t.atl.delta | number: '1.0-1' }} vs 7 days ago</span>
           }
         </section>
         <section class="panel tile">
-          <span class="tile-label">Form (TSB)</span>
+          <span class="tile-label">Form (<app-term key="tsb">TSB</app-term>)</span>
           <span class="tile-value">{{ t.tsb.value > 0 ? '+' : '' }}{{ t.tsb.value | number: '1.0-0' }}</span>
           <span class="tile-delta">{{ t.tsb.description }}</span>
         </section>
@@ -116,7 +116,7 @@
 
       <section class="panel">
         <h2>Planned vs actual load</h2>
-        <p class="hint">Weekly TSS your plan called for vs what you completed.</p>
+        <p class="hint">Weekly <app-term key="tss">TSS</app-term> your plan called for vs what you completed.</p>
         <app-column-chart
           [rows]="loadRows()"
           [series]="loadSeries"

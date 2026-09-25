@@ -8,6 +8,7 @@ import { toDateKey } from '../workouts/date-utils';
 import { ColumnChartComponent, type ColumnRow, type ColumnSeries } from './charts/column-chart.component';
 import { shortDate } from './charts/chart-utils';
 import { LoadChartComponent } from './charts/load-chart.component';
+import { TermComponent } from '../glossary/term.component';
 import { FitnessService } from './fitness.service';
 
 interface RangePreset {
@@ -59,7 +60,7 @@ function formDescription(tsb: number): string {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [DecimalPipe, RouterLink, LoadChartComponent, ColumnChartComponent],
+  imports: [DecimalPipe, RouterLink, LoadChartComponent, ColumnChartComponent, TermComponent],
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.css',
 })

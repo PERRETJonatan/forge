@@ -104,4 +104,10 @@ The API tests run against the same local Postgres instance as dev (see `apps/api
   by `POST /plan-generator/preview|apply` (`apps/api/src/plan-generator`: pure, deterministic
   generator + workout library, so apply writes exactly what was previewed).
 
+- Glossary (`/glossary`): searchable definitions of the training terms the app uses (TSS, CTL/ATL/TSB,
+  FTP, CSS, zones, taper, brick…), each with an "In Forge" note tying it to the app's actual
+  formulas and numbers -- keep those in sync when the fitness model or plan generator change
+  (`apps/web/src/app/glossary/glossary-terms.ts`). `<app-term key="…">` marks a term inline with a
+  hover/focus definition linking to its entry; used in Settings, the dashboard and the builder.
+
 Remaining roadmap (placeholder pages until then): virtual coach (milestone 8), settings profile tab (later milestone); peak performances once activity streams are synced.

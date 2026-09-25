@@ -83,28 +83,28 @@
 
   <form class="thresholds-form" [formGroup]="thresholdsForm" (ngSubmit)="saveThresholds()">
     <label>
-      FTP (bike)
+      <span><app-term key="ftp">FTP</app-term> (bike)</span>
       <div class="unit-field">
         <input type="number" min="1" formControlName="ftpWatts" placeholder="e.g. 250" />
         <span class="unit">W</span>
       </div>
     </label>
     <label>
-      Threshold pace (run)
+      <span><app-term key="threshold-pace">Threshold pace</app-term> (run)</span>
       <div class="unit-field">
         <input type="text" formControlName="runThresholdPace" placeholder="mm:ss" />
         <span class="unit">/km</span>
       </div>
     </label>
     <label>
-      Threshold pace (swim, CSS)
+      <span>Threshold pace (swim, <app-term key="css">CSS</app-term>)</span>
       <div class="unit-field">
         <input type="text" formControlName="swimThresholdPace" placeholder="mm:ss" />
         <span class="unit">/100m</span>
       </div>
     </label>
     <label>
-      Threshold heart rate
+      <span><app-term key="lthr">Threshold heart rate</app-term></span>
       <div class="unit-field">
         <input type="number" min="1" formControlName="thresholdHr" placeholder="e.g. 168" />
         <span class="unit">bpm</span>

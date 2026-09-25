@@ -16,6 +16,7 @@ import { RaceTargetService } from '../../race-target/race-target.service';
 import { toDateKey } from '../../workouts/date-utils';
 import { DISCIPLINE_COLORS, DISCIPLINE_LABELS } from '../../workouts/discipline';
 import { WorkoutStepsComponent } from '../../workouts/workout-steps/workout-steps.component';
+import { TermComponent } from '../../glossary/term.component';
 import { PlanGeneratorService } from './plan-generator.service';
 
 const WEEKDAYS: { value: Weekday; label: string }[] = [
@@ -57,7 +58,7 @@ function weekdayOf(date: string): number {
 @Component({
   selector: 'app-plan-generator',
   standalone: true,
-  imports: [RouterLink, ColumnChartComponent, WorkoutStepsComponent],
+  imports: [RouterLink, ColumnChartComponent, WorkoutStepsComponent, TermComponent],
   templateUrl: './plan-generator.component.html',
   styleUrl: './plan-generator.component.css',
 })

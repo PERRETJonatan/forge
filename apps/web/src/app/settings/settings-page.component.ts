@@ -7,6 +7,7 @@ import type { PlanImport, StravaStatus } from '@forge/shared';
 import { CalendarFeedService } from '../calendar-feed/calendar-feed.service';
 import { PlanImportService } from '../plan-import/plan-import.service';
 import { RaceTargetService } from '../race-target/race-target.service';
+import { TermComponent } from '../glossary/term.component';
 import { formatPace, parsePace } from '../shared/pace';
 import { StravaService } from '../strava/strava.service';
 import { ThresholdsService } from '../thresholds/thresholds.service';
@@ -31,7 +32,7 @@ function extensionOf(filename: string): string {
 @Component({
   selector: 'app-settings-page',
   standalone: true,
-  imports: [DatePipe, ReactiveFormsModule],
+  imports: [DatePipe, ReactiveFormsModule, TermComponent],
   templateUrl: './settings-page.component.html',
   styleUrl: './settings-page.component.css',
 })

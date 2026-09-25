@@ -1,0 +1,137 @@
+:host {
+  display: block;
+  max-width: 760px;
+  font-family: 'Work Sans', system-ui, sans-serif;
+}
+
+h1 {
+  margin: 0 0 4px 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.subtitle {
+  margin: 0 0 20px 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.toolbar {
+  margin-bottom: 8px;
+}
+
+input[type='search'] {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+a {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.jump a {
+  color: var(--text-muted);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.jump a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.empty {
+  margin: 24px 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.section {
+  margin-top: 28px;
+  scroll-margin-top: 16px;
+}
+
+h2 {
+  margin: 0 0 12px 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.entry {
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  scroll-margin-top: 16px;
+  transition: border-color 0.3s;
+}
+
+.entry + .entry {
+  margin-top: 10px;
+}
+
+.entry.highlighted {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+h3 {
+  margin: 0 0 4px 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.full-name {
+  margin-left: 6px;
+  font-family: 'Work Sans', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.entry p {
+  margin: 8px 0 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.entry .short {
+  margin-top: 0;
+  color: var(--text-muted);
+}
+
+.entry .in-forge {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 13px;
+}
+
+.in-forge strong {
+  margin-right: 4px;
+}
+
+.entry .related {
+  font-size: 13px;
+  color: var(--text-muted);
+}

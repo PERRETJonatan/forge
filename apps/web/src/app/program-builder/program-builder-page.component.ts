@@ -8,6 +8,7 @@ import { WorkoutService } from '../workouts/workout.service';
 import { ThresholdsService } from '../thresholds/thresholds.service';
 import { WorkoutTemplateService } from '../workout-templates/workout-template.service';
 import { formatPace, parsePace } from '../shared/pace';
+import { TermComponent } from '../glossary/term.component';
 import { PlanGeneratorComponent } from './plan-generator/plan-generator.component';
 import { TARGET_UNITS_BY_DISCIPLINE, targetUnitConfig } from './target-units';
 
@@ -33,7 +34,7 @@ const EMPTY_THRESHOLDS: AthleteThresholds = {
 @Component({
   selector: 'app-program-builder-page',
   standalone: true,
-  imports: [NgTemplateOutlet, DecimalPipe, PlanGeneratorComponent],
+  imports: [NgTemplateOutlet, DecimalPipe, PlanGeneratorComponent, TermComponent],
   templateUrl: './program-builder-page.component.html',
   styleUrl: './program-builder-page.component.css',
 })

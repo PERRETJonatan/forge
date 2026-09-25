@@ -109,7 +109,7 @@
       @if (summary().distanceM > 0) {
         <span><strong>{{ formatDistance(summary().distanceM) }}</strong></span>
       }
-      <span class="tss"><strong>~{{ summary().estimatedTss | number: '1.0-0' }}</strong> TSS estimate</span>
+      <span class="tss"><strong>~{{ summary().estimatedTss | number: '1.0-0' }}</strong> <app-term key="tss">TSS</app-term> estimate</span>
     </div>
 
     <div class="save-row">

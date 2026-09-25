@@ -2,13 +2,10 @@ import type { Routes } from '@angular/router';
 import { LoginComponent } from './auth/login/login.component';
 import { SignupComponent } from './auth/signup/signup.component';
 import { authGuard } from './core/auth.guard';
-import { DashboardPageComponent } from './dashboard/dashboard-page.component';
 import { PlaceholderComponent } from './pages/placeholder/placeholder.component';
-import { ProgramBuilderPageComponent } from './program-builder/program-builder-page.component';
-import { SettingsPageComponent } from './settings/settings-page.component';
 import { ShellComponent } from './shell/shell.component';
-import { CalendarPageComponent } from './workouts/calendar-page/calendar-page.component';
 
+// Feature pages load on first visit rather than in the initial bundle.
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'signup', component: SignupComponent },
@@ -20,15 +17,17 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'calendar' },
       {
         path: 'calendar',
-        component: CalendarPageComponent,
+        loadComponent: () =>
+          import('./workouts/calendar-page/calendar-page.component').then((m) => m.CalendarPageComponent),
       },
       {
         path: 'builder',
-        component: ProgramBuilderPageComponent,
+        loadComponent: () =>
+          import('./program-builder/program-builder-page.component').then((m) => m.ProgramBuilderPageComponent),
       },
       {
         path: 'dashboard',
-        component: DashboardPageComponent,
+        loadComponent: () => import('./dashboard/dashboard-page.component').then((m) => m.DashboardPageComponent),
       },
       {
         path: 'coach',
@@ -36,8 +35,12 @@ export const routes: Routes = [
         data: { title: 'Coach', note: 'Virtual coach chat lands in milestone 8.' },
       },
       {
+        path: 'glossary',
+        loadComponent: () => import('./glossary/glossary-page.component').then((m) => m.GlossaryPageComponent),
+      },
+      {
         path: 'settings',
-        component: SettingsPageComponent,
+        loadComponent: () => import('./settings/settings-page.component').then((m) => m.SettingsPageComponent),
       },
     ],
   },

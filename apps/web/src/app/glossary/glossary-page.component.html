@@ -1,0 +1,54 @@
+<h1>Glossary</h1>
+<p class="subtitle">The training terms Forge uses, and how the app uses each one.</p>
+
+<div class="toolbar">
+  <input
+    type="search"
+    placeholder="Search terms, e.g. FTP, taper, zone"
+    aria-label="Search the glossary"
+    [value]="query()"
+    (input)="query.set($any($event.target).value)"
+  />
+  <nav class="jump" aria-label="Glossary sections">
+    @for (section of sections(); track section.id) {
+      <a routerLink="/glossary" [fragment]="'section-' + section.id">{{ section.label }}</a>
+    }
+  </nav>
+</div>
+
+@if (resultCount() === 0) {
+  <p class="empty">No terms match “{{ query() }}”.</p>
+}
+
+@for (section of sections(); track section.id) {
+  <section class="section" [id]="'section-' + section.id">
+    <h2>{{ section.label }}</h2>
+    @for (term of section.terms; track term.id) {
+      <article class="entry" [id]="term.id" [class.highlighted]="highlighted() === term.id">
+        <h3>
+          {{ term.term }}
+          @if (term.fullName) {
+            <span class="full-name">{{ term.fullName }}</span>
+          }
+        </h3>
+        <p class="short">{{ term.short }}</p>
+        @for (paragraph of term.body; track $index) {
+          <p>{{ paragraph }}</p>
+        }
+        @if (term.inForge) {
+          <p class="in-forge"><strong>In Forge</strong> {{ term.inForge }}</p>
+        }
+        @if (term.related?.length) {
+          <p class="related">
+            See also:
+            @for (id of term.related!; track id; let last = $last) {
+              @if (relatedTerm(id); as related) {
+                <a routerLink="/glossary" [fragment]="related.id" (click)="goToRelated(related.id)">{{ related.term }}</a>{{ last ? '' : ', ' }}
+              }
+            }
+          </p>
+        }
+      </article>
+    }
+  </section>
+}
