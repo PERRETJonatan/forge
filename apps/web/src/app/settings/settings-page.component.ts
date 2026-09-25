@@ -6,6 +6,7 @@ import { ActivatedRoute } from '@angular/router';
 import type { PlanImport, StravaStatus } from '@forge/shared';
 import { CalendarFeedService } from '../calendar-feed/calendar-feed.service';
 import { PlanImportService } from '../plan-import/plan-import.service';
+import { RaceTargetService } from '../race-target/race-target.service';
 import { formatPace, parsePace } from '../shared/pace';
 import { StravaService } from '../strava/strava.service';
 import { ThresholdsService } from '../thresholds/thresholds.service';
@@ -28,6 +29,7 @@ export class SettingsPageComponent {
   private calendarFeedService = inject(CalendarFeedService);
   private thresholdsService = inject(ThresholdsService);
   private stravaService = inject(StravaService);
+  private raceTargetService = inject(RaceTargetService);
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
 
@@ -45,6 +47,14 @@ export class SettingsPageComponent {
   readonly thresholdsSaving = signal(false);
   readonly thresholdsSaved = signal(false);
   readonly thresholdsError = signal<string | null>(null);
+
+  readonly raceForm = this.fb.group({
+    raceName: [''],
+    raceDate: [''],
+  });
+  readonly raceSaving = signal(false);
+  readonly raceSaved = signal(false);
+  readonly raceError = signal<string | null>(null);
 
   readonly feedUrl = signal<string | null>(null);
   readonly feedBusy = signal(false);
@@ -67,6 +77,7 @@ export class SettingsPageComponent {
     void this.loadHistory();
     void this.loadFeedStatus();
     void this.loadThresholds();
+    void this.loadRaceTarget();
     void this.loadStravaStatus();
 
     const stravaParam = this.route.snapshot.queryParamMap.get('strava');
@@ -126,6 +137,35 @@ export class SettingsPageComponent {
       this.stravaError.set('Could not disconnect Strava. Try again.');
     } finally {
       this.stravaBusy.set(false);
+    }
+  }
+
+  private async loadRaceTarget(): Promise<void> {
+    try {
+      const race = await this.raceTargetService.get();
+      this.raceForm.reset({ raceName: race.raceName ?? '', raceDate: race.raceDate ?? '' });
+    } catch {
+      // The save button will surface any real error; a failed initial load just leaves blanks.
+    }
+  }
+
+  async saveRaceTarget(): Promise<void> {
+    this.raceSaving.set(true);
+    this.raceError.set(null);
+    this.raceSaved.set(false);
+    try {
+      const v = this.raceForm.getRawValue();
+      const updated = await this.raceTargetService.update({
+        raceName: v.raceName?.trim() || null,
+        raceDate: v.raceDate || null,
+      });
+      this.raceForm.reset({ raceName: updated.raceName ?? '', raceDate: updated.raceDate ?? '' });
+      this.raceSaved.set(true);
+      setTimeout(() => this.raceSaved.set(false), 2000);
+    } catch {
+      this.raceError.set('Could not save your target race. Try again.');
+    } finally {
+      this.raceSaving.set(false);
     }
   }
 

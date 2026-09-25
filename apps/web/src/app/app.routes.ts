@@ -2,6 +2,7 @@ import type { Routes } from '@angular/router';
 import { LoginComponent } from './auth/login/login.component';
 import { SignupComponent } from './auth/signup/signup.component';
 import { authGuard } from './core/auth.guard';
+import { DashboardPageComponent } from './dashboard/dashboard-page.component';
 import { PlaceholderComponent } from './pages/placeholder/placeholder.component';
 import { ProgramBuilderPageComponent } from './program-builder/program-builder-page.component';
 import { SettingsPageComponent } from './settings/settings-page.component';
@@ -27,8 +28,7 @@ export const routes: Routes = [
       },
       {
         path: 'dashboard',
-        component: PlaceholderComponent,
-        data: { title: 'Fitness dashboard', note: 'CTL/ATL/TSB dashboard lands in milestone 7.' },
+        component: DashboardPageComponent,
       },
       {
         path: 'coach',

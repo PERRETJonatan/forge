@@ -123,8 +123,8 @@ export interface PlanImport {
 
 /**
  * Athlete-set thresholds: FTP, threshold pace per discipline, threshold HR. Used to compute
- * absolute per-athlete targets from a %-of-threshold step (program builder) and, in later
- * milestones, per-activity TSS for the dashboard -- same values, both places (see SPEC.md,
+ * absolute per-athlete targets from a %-of-threshold step (program builder) and per-activity
+ * TSS for the dashboard -- same values, both places (see SPEC.md,
  * Formulas). All null until the athlete sets them in Settings.
  */
 export interface AthleteThresholds {
@@ -167,6 +167,57 @@ export interface StravaSyncResult {
   fetched: number;
   matchedExisting: number;
   createdNew: number;
+}
+
+/** The athlete's target race, shown as a countdown on the dashboard. Both null until set. */
+export interface RaceTarget {
+  raceName: string | null;
+  raceDate: string | null;
+}
+
+export type UpdateRaceTargetRequest = Partial<RaceTarget>;
+
+/**
+ * One calendar day of the Performance Management model (see SPEC.md, Formulas). Days up to
+ * and including `today` roll actual TSS from completed workouts; later days are `projected`,
+ * rolling the planned TSS of workouts on the calendar instead.
+ */
+export interface FitnessDay {
+  date: string;
+  tss: number;
+  ctl: number;
+  atl: number;
+  tsb: number;
+  projected: boolean;
+}
+
+export interface DisciplineVolume {
+  durationSec: number;
+  distanceM: number;
+}
+
+/** A Monday-start week: completed volume per discipline plus planned vs actual TSS. */
+export interface FitnessWeek {
+  weekStart: string;
+  plannedTss: number;
+  actualTss: number;
+  volume: Record<Discipline, DisciplineVolume>;
+}
+
+export interface FitnessDashboard {
+  today: string;
+  current: { ctl: number; atl: number; tsb: number };
+  series: FitnessDay[];
+  weeks: FitnessWeek[];
+  race: RaceTarget;
+  /** Thresholds not set yet -- TSS for those disciplines falls back to a coarser estimate. */
+  missingThresholds: (keyof AthleteThresholds)[];
+}
+
+export interface FitnessDashboardQuery {
+  from?: string;
+  to?: string;
+  today?: string;
 }
 
 export * from './tss.js';

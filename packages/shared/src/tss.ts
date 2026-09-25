@@ -17,8 +17,9 @@ export interface StepsSummary {
   estimatedTss: number;
 }
 
-/** IF assumed for a step with no target at all -- an easy/recovery-effort default, not a measurement. */
-const DEFAULT_UNTARGETED_IF = 0.55;
+/** IF assumed for a step with no target at all -- an easy/recovery-effort default, not a measurement.
+ * The dashboard uses the same default for a workout with no measured or planned intensity. */
+export const DEFAULT_UNTARGETED_IF = 0.55;
 
 /** Very rough RPE(1-10) -> IF mapping for a builder estimate; there's no better signal without a target. */
 function ifFromRpe(rpe: number): number {

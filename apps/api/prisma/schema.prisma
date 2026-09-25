@@ -18,12 +18,16 @@ model Athlete {
   /// Null until the athlete first enables sync; regenerating invalidates the old feed URL.
   calendarFeedToken String? @unique
 
-  /// Thresholds used everywhere a %-of-threshold target/TSS is computed (program builder now;
-  /// dashboard TSS/CTL/ATL and coach context in later milestones). All null until set.
+  /// Thresholds used everywhere a %-of-threshold target/TSS is computed (program builder,
+  /// dashboard TSS/CTL/ATL; coach context in a later milestone). All null until set.
   ftpWatts                 Int?
   runThresholdPaceSecPerKm Int?
   swimThresholdPaceSec100m Int?
   thresholdHr              Int?
+
+  /// Target race for the dashboard countdown. Date-only, stored at UTC midnight like Workout.date.
+  raceName String?
+  raceDate DateTime?
 
   refreshTokens    RefreshToken[]
   workouts         Workout[]

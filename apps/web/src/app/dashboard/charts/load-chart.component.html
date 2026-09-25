@@ -1,0 +1,107 @@
+<div class="legend">
+  <span class="key"><span class="line-key ctl"></span>Fitness (CTL)</span>
+  <span class="key"><span class="line-key atl"></span>Fatigue (ATL)</span>
+  <span class="key"><span class="line-key tsb"></span>Form (TSB)</span>
+  <span class="key muted"><span class="line-key projected"></span>Projected from plan</span>
+</div>
+
+@if (layout(); as l) {
+  <div class="chart-frame">
+    <svg
+      [attr.width]="l.width"
+      [attr.height]="l.height"
+      role="img"
+      aria-label="Fitness, fatigue and form over time. Use left and right arrow keys to read values by day."
+      tabindex="0"
+      (pointermove)="onPointerMove($event)"
+      (pointerleave)="clearHover()"
+      (keydown)="onKeydown($event)"
+      (blur)="clearHover()"
+    >
+      <!-- Load panel -->
+      @for (t of l.loadTicks; track t.value) {
+        <line class="grid" [attr.x1]="40" [attr.x2]="l.plotRight" [attr.y1]="t.y" [attr.y2]="t.y" />
+        <text class="tick" x="34" [attr.y]="t.y" text-anchor="end" dominant-baseline="middle">{{ t.value }}</text>
+      }
+      <text class="panel-label" x="40" [attr.y]="l.formTop - 10">Form</text>
+
+      <!-- Form panel -->
+      @for (t of l.formTicks; track t.value) {
+        <line
+          [class]="t.value === 0 ? 'baseline' : 'grid'"
+          [attr.x1]="40"
+          [attr.x2]="l.plotRight"
+          [attr.y1]="t.y"
+          [attr.y2]="t.y"
+        />
+        <text class="tick" x="34" [attr.y]="t.y" text-anchor="end" dominant-baseline="middle">{{ t.value }}</text>
+      }
+      <path class="area tsb" [attr.d]="l.tsb.area" />
+
+      @if (l.todayX !== null) {
+        <line class="marker" [attr.x1]="l.todayX" [attr.x2]="l.todayX" y1="20" [attr.y2]="l.height - 28" />
+        <text class="marker-label" [attr.x]="l.todayX + 4" y="12">Today</text>
+      }
+      @if (l.raceX !== null) {
+        <line class="marker race" [attr.x1]="l.raceX" [attr.x2]="l.raceX" y1="20" [attr.y2]="l.height - 28" />
+        <text class="marker-label" [attr.x]="l.raceX - 4" y="12" text-anchor="end">{{ raceName || 'Race' }}</text>
+      }
+
+      <path class="series ctl" [attr.d]="l.ctl.solid" />
+      <path class="series ctl projected" [attr.d]="l.ctl.projected" />
+      <path class="series atl" [attr.d]="l.atl.solid" />
+      <path class="series atl projected" [attr.d]="l.atl.projected" />
+      <path class="series tsb" [attr.d]="l.tsb.solid" />
+      <path class="series tsb projected" [attr.d]="l.tsb.projected" />
+
+      @for (label of l.xLabels; track label.x) {
+        <text class="tick" [attr.x]="label.x" [attr.y]="l.height - 8" text-anchor="middle">{{ label.text }}</text>
+      }
+
+      @if (hoverIndex() !== null) {
+        @let i = hoverIndex()!;
+        <line class="crosshair" [attr.x1]="l.xs[i]" [attr.x2]="l.xs[i]" y1="20" [attr.y2]="l.height - 28" />
+        <circle class="dot ctl" [attr.cx]="l.xs[i]" [attr.cy]="l.yLoad(series[i].ctl)" r="4" />
+        <circle class="dot atl" [attr.cx]="l.xs[i]" [attr.cy]="l.yLoad(series[i].atl)" r="4" />
+        <circle class="dot tsb" [attr.cx]="l.xs[i]" [attr.cy]="l.yForm(series[i].tsb)" r="4" />
+      }
+    </svg>
+
+    @if (hoverIndex() !== null) {
+      @let i = hoverIndex()!;
+      <div class="tooltip" [style]="tooltipStyle(l, i)">
+        <div class="tooltip-title">
+          {{ shortDate(series[i].date) }}{{ series[i].projected ? ' · projected' : '' }}
+        </div>
+        <div class="tooltip-row"><span class="line-key ctl"></span><strong>{{ series[i].ctl | number: '1.0-0' }}</strong> Fitness</div>
+        <div class="tooltip-row"><span class="line-key atl"></span><strong>{{ series[i].atl | number: '1.0-0' }}</strong> Fatigue</div>
+        <div class="tooltip-row"><span class="line-key tsb"></span><strong>{{ series[i].tsb | number: '1.0-0' }}</strong> Form</div>
+        <div class="tooltip-row plain"><strong>{{ series[i].tss | number: '1.0-0' }}</strong> TSS that day</div>
+      </div>
+    }
+  </div>
+} @else {
+  <p class="empty">Not enough days in this range to chart.</p>
+}
+
+<details class="table-view">
+  <summary>Show as table</summary>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Date</th><th>TSS</th><th>Fitness (CTL)</th><th>Fatigue (ATL)</th><th>Form (TSB)</th></tr>
+      </thead>
+      <tbody>
+        @for (d of series; track d.date) {
+          <tr [class.projected-row]="d.projected">
+            <td>{{ d.date }}{{ d.projected ? ' (projected)' : '' }}</td>
+            <td>{{ d.tss | number: '1.0-0' }}</td>
+            <td>{{ d.ctl | number: '1.1-1' }}</td>
+            <td>{{ d.atl | number: '1.1-1' }}</td>
+            <td>{{ d.tsb | number: '1.1-1' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</details>

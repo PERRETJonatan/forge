@@ -1,0 +1,94 @@
+<div class="legend">
+  @for (s of series; track s.key) {
+    <span class="key"><span class="swatch" [style.background]="s.color"></span>{{ s.label }}</span>
+  }
+</div>
+
+@if (layout(); as l) {
+  <div class="chart-frame">
+    <svg
+      [attr.width]="l.width"
+      [attr.height]="l.height"
+      role="img"
+      [attr.aria-label]="ariaLabel + ' Use left and right arrow keys to read values by week.'"
+      tabindex="0"
+      (pointerleave)="hoverIndex.set(null)"
+      (keydown)="onKeydown($event)"
+      (blur)="hoverIndex.set(null)"
+    >
+      @for (t of l.ticks; track t.value) {
+        <line [class]="t.value === 0 ? 'baseline' : 'grid'" x1="40" [attr.x2]="l.plotRight" [attr.y1]="t.y" [attr.y2]="t.y" />
+        <text class="tick" x="34" [attr.y]="t.y" text-anchor="end" dominant-baseline="middle">{{ format(t.value) }}</text>
+      }
+
+      @for (band of l.bands; track $index) {
+        <g [class.dimmed]="hoverIndex() !== null && hoverIndex() !== $index">
+          @for (mark of band.marks; track $index) {
+            <path [attr.d]="mark.d" [attr.fill]="mark.color" />
+          }
+        </g>
+        <!-- Hit target is the whole week band, not just the painted bar. -->
+        <rect
+          class="hit"
+          [attr.x]="band.x"
+          y="0"
+          [attr.width]="band.width"
+          [attr.height]="l.height - 28"
+          (pointerenter)="hoverIndex.set($index)"
+        />
+      }
+
+      @for (label of l.xLabels; track label.x) {
+        <text class="tick" [attr.x]="label.x" [attr.y]="l.height - 8" text-anchor="middle">{{ label.text }}</text>
+      }
+    </svg>
+
+    @if (hoverIndex() !== null) {
+      @let i = hoverIndex()!;
+      <div class="tooltip" [style]="tooltipStyle(l, i)">
+        <div class="tooltip-title">Week of {{ rows[i].label }}</div>
+        @for (s of series; track s.key) {
+          <div class="tooltip-row">
+            <span class="swatch" [style.background]="s.color"></span>
+            <strong>{{ format(valueOf(rows[i], s.key)) }}</strong> {{ s.label }}
+          </div>
+        }
+        @if (mode === 'stacked') {
+          <div class="tooltip-row plain"><strong>{{ format(total(rows[i])) }}</strong> Total</div>
+        }
+      </div>
+    }
+  </div>
+}
+
+<details class="table-view">
+  <summary>Show as table</summary>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Week of</th>
+          @for (s of series; track s.key) {
+            <th>{{ s.label }}</th>
+          }
+          @if (mode === 'stacked') {
+            <th>Total</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows; track $index) {
+          <tr>
+            <td>{{ row.label }}</td>
+            @for (s of series; track s.key) {
+              <td>{{ format(valueOf(row, s.key)) }}</td>
+            }
+            @if (mode === 'stacked') {
+              <td>{{ format(total(row)) }}</td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</details>

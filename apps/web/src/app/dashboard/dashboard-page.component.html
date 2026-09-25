@@ -1,0 +1,132 @@
+<h1>Dashboard</h1>
+<p class="subtitle">Fitness, fatigue and form from your training load (TSS), with your plan projected ahead.</p>
+
+<div class="filters" role="group" aria-label="Date range">
+  @for (preset of presets; track preset.days) {
+    <button
+      type="button"
+      class="range"
+      [class.active]="rangeDays() === preset.days"
+      [attr.aria-pressed]="rangeDays() === preset.days"
+      (click)="setRange(preset.days)"
+    >
+      {{ preset.label }}
+    </button>
+  }
+</div>
+
+@if (error()) {
+  <div class="banner error">{{ error() }}</div>
+}
+
+@if (dashboard(); as dash) {
+  <div class="content" [class.refreshing]="loading()">
+    @if (missingThresholdsText(); as missing) {
+      <div class="banner info">
+        No {{ missing }} set yet, so TSS for workouts that depend on them is a rough estimate.
+        <a routerLink="/settings">Set thresholds in Settings</a>
+      </div>
+    }
+
+    <div class="summary">
+      <section class="panel race">
+        @if (raceCountdown(); as race) {
+          <span class="tile-label">{{ race.name || 'Target race' }}</span>
+          @if (race.days === 0) {
+            <span class="hero">Race day</span>
+          } @else {
+            <span class="hero">{{ race.days }}</span>
+            <span class="hero-unit">day{{ race.days === 1 ? '' : 's' }} to go · {{ race.date }}</span>
+          }
+        } @else {
+          <span class="tile-label">Target race</span>
+          <p class="hint">No upcoming race set. <a routerLink="/settings">Add one in Settings</a> to see a countdown here.</p>
+        }
+      </section>
+
+      @if (tiles(); as t) {
+        <section class="panel tile">
+          <span class="tile-label">Fitness (CTL)</span>
+          <span class="tile-value">{{ t.ctl.value | number: '1.0-0' }}</span>
+          @if (t.ctl.delta !== null) {
+            <span class="tile-delta">{{ t.ctl.delta > 0 ? '+' : '' }}{{ t.ctl.delta | number: '1.0-1' }} vs 7 days ago</span>
+          }
+        </section>
+        <section class="panel tile">
+          <span class="tile-label">Fatigue (ATL)</span>
+          <span class="tile-value">{{ t.atl.value | number: '1.0-0' }}</span>
+          @if (t.atl.delta !== null) {
+            <span class="tile-delta">{{ t.atl.delta > 0 ? '+' : '' }}{{ t.atl.delta | number: '1.0-1' }} vs 7 days ago</span>
+          }
+        </section>
+        <section class="panel tile">
+          <span class="tile-label">Form (TSB)</span>
+          <span class="tile-value">{{ t.tsb.value > 0 ? '+' : '' }}{{ t.tsb.value | number: '1.0-0' }}</span>
+          <span class="tile-delta">{{ t.tsb.description }}</span>
+        </section>
+      }
+    </div>
+
+    <section class="panel">
+      <h2>Performance</h2>
+      <p class="hint">
+        Fitness is your 42-day average daily TSS, fatigue your 7-day average; form is fitness minus
+        fatigue coming into the day. Dashed lines project forward from the workouts on your calendar.
+      </p>
+      <app-load-chart
+        [series]="dash.series"
+        [today]="dash.today"
+        [raceDate]="dash.race.raceDate"
+        [raceName]="dash.race.raceName"
+      />
+    </section>
+
+    <div class="weekly">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Weekly volume</h2>
+          <div class="toggle" role="group" aria-label="Volume unit">
+            <button
+              type="button"
+              [class.active]="volumeUnit() === 'hours'"
+              [attr.aria-pressed]="volumeUnit() === 'hours'"
+              (click)="volumeUnit.set('hours')"
+            >
+              Hours
+            </button>
+            <button
+              type="button"
+              [class.active]="volumeUnit() === 'distance'"
+              [attr.aria-pressed]="volumeUnit() === 'distance'"
+              (click)="volumeUnit.set('distance')"
+            >
+              Distance
+            </button>
+          </div>
+        </div>
+        <p class="hint">Completed workouts per discipline, by week.</p>
+        <app-column-chart
+          [rows]="volumeRows()"
+          [series]="disciplineSeries"
+          mode="stacked"
+          [format]="formatVolume()"
+          ariaLabel="Weekly training volume by discipline."
+        />
+      </section>
+
+      <section class="panel">
+        <h2>Planned vs actual load</h2>
+        <p class="hint">Weekly TSS your plan called for vs what you completed.</p>
+        <app-column-chart
+          [rows]="loadRows()"
+          [series]="loadSeries"
+          mode="grouped"
+          [format]="formatTss"
+          ariaLabel="Weekly planned versus actual TSS."
+        />
+      </section>
+    </div>
+  </div>
+} @else if (loading()) {
+  <p class="hint">Loading…</p>
+}

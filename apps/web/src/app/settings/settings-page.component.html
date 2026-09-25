@@ -41,10 +41,42 @@
 </section>
 
 <section class="panel">
+  <h2>Target race</h2>
+  <p class="hint">
+    The race you're training for. The dashboard counts down to it and, when it's within a few
+    months, projects your fitness and form all the way to race day.
+  </p>
+
+  <form class="thresholds-form" [formGroup]="raceForm" (ngSubmit)="saveRaceTarget()">
+    <label>
+      Event
+      <div class="unit-field">
+        <input type="text" formControlName="raceName" placeholder="e.g. Ironman Frankfurt" maxlength="200" />
+      </div>
+    </label>
+    <label>
+      Race date
+      <div class="unit-field">
+        <input type="date" formControlName="raceDate" />
+      </div>
+    </label>
+
+    <button type="submit" [disabled]="raceSaving()">
+      {{ raceSaving() ? 'Saving…' : raceSaved() ? 'Saved!' : 'Save race' }}
+    </button>
+  </form>
+
+  @if (raceError()) {
+    <div class="banner error">{{ raceError() }}</div>
+  }
+</section>
+
+<section class="panel">
   <h2>Thresholds &amp; zones</h2>
   <p class="hint">
     Used to turn a %-of-threshold step in the program builder into an absolute pace/power/HR
-    target, and to estimate a workout's TSS as you build it. Leave any of these blank if you
+    target, to estimate a workout's TSS as you build it, and to compute TSS from your synced
+    Strava activities for the dashboard. Leave any of these blank if you
     don't know them yet — steps without a matching threshold just fall back to an easy-effort
     estimate.
   </p>

@@ -1,0 +1,188 @@
+:host {
+  display: block;
+  font-family: 'Work Sans', system-ui, sans-serif;
+}
+
+h1 {
+  margin: 0 0 4px 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #141b22;
+}
+
+.subtitle {
+  margin: 0 0 20px 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+h2 {
+  margin: 0 0 8px 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  color: #141b22;
+}
+
+.hint {
+  margin: 0 0 16px 0;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+a {
+  color: #141b22;
+  font-weight: 600;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+button {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid #e4e1d8;
+  background: #ffffff;
+  color: #141b22;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button.active {
+  background: #141b22;
+  border-color: #141b22;
+  color: #ffffff;
+}
+
+.content {
+  transition: opacity 0.15s;
+}
+
+/* Refetch holds the previous render instead of flashing a loading state. */
+.content.refreshing {
+  opacity: 0.55;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #e4e1d8;
+  border-radius: 14px;
+  padding: 20px 24px;
+  min-width: 0;
+}
+
+.content > .panel,
+.weekly {
+  margin-top: 20px;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1000px) {
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+.summary .panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tile-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.hero {
+  font-size: 52px;
+  font-weight: 600;
+  line-height: 1.05;
+  color: #141b22;
+}
+
+.hero-unit {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.race .hint {
+  margin: 8px 0 0 0;
+}
+
+.tile-value {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #141b22;
+}
+
+.tile-delta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.weekly {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 1100px) {
+  .weekly {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.toggle button {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.banner {
+  margin-bottom: 16px;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.banner.error {
+  background: #fff4ec;
+  color: #b6461f;
+}
+
+.banner.info {
+  background: #eef3fb;
+  color: #141b22;
+}

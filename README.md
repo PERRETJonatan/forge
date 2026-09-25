@@ -71,4 +71,23 @@ The API tests run against the same local Postgres instance as dev (see `apps/api
     splits/laps -- a separate, per-activity Strava endpoint) and webhook-based incremental sync
     (polling via "Sync now" only).
 
-Remaining roadmap (placeholder pages until then): fitness dashboard (milestone 7), virtual coach (milestone 8), settings profile tab (later milestone).
+- Milestone 7 (fitness dashboard): `/dashboard` with the Performance Management model from
+  SPEC.md -- per-workout TSS rolled into CTL (fitness, 42-day), ATL (fatigue, 7-day) and TSB
+  (form) over every calendar day, current values with a 7-day change, a trend chart that
+  projects forward from planned workouts (dashed), weekly volume per discipline (hours or
+  distance), weekly planned-vs-actual TSS, and a race-day countdown (new Settings → Target race
+  panel; a race within ~4 months extends the projection to race day). Backed by
+  `GET /fitness/dashboard` and `/me/race-target` (`apps/api/src/fitness`, `apps/api/src/race-target`).
+  - TSS per completed workout uses the best available intensity: the matched Strava activity's
+    average power (bike) / pace (run, swim) / HR (any discipline) against the athlete's
+    thresholds, else the IF implied by the workout's planned steps, else an easy-effort default
+    (same constant as the program builder). Strava gives averages only (no streams), so bike
+    TSS uses average power rather than Normalized Power and reads slightly low on variable rides.
+  - The series is computed on read from the athlete's full history rather than stored in a
+    `fitness_snapshot` table: the recurrence has to be re-rolled from the start on any change
+    anyway (late sync, threshold edit), and this is cheap at a single athlete's volume.
+  - Deliberately deferred: peak performances (best 5K / 20-min power / etc.) -- the SPEC
+    computes these from rolling windows over activity streams, which Strava sync doesn't fetch
+    yet (see milestone 6).
+
+Remaining roadmap (placeholder pages until then): virtual coach (milestone 8), settings profile tab (later milestone); peak performances once activity streams are synced.
