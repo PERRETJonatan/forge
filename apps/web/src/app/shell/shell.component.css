@@ -10,7 +10,15 @@
   color: var(--text);
 }
 
+/* Pinned to the viewport: on a page taller than the screen only the content scrolls, so the
+   theme switch and account stay visible instead of riding down to the page's bottom. */
 .sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
   width: 240px;
   flex-shrink: 0;
   background: var(--sidebar-bg);
