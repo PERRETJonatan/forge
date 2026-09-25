@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { prisma } from "../src/db.js";
 import { signAccessToken } from "../src/auth/jwt.js";
+import { env } from "../src/env.js";
 import type { StravaActivityDto, StravaClient, StravaTokenRefresh, StravaTokens } from "../src/strava/strava-client.js";
 import { setStravaClientForTesting } from "../src/strava/strava.service.js";
 
@@ -86,6 +87,16 @@ describe("GET /strava/status", () => {
 });
 
 describe("GET /strava/connect-url", () => {
+  // Neither a dev .env nor CI's sets real Strava credentials; the URL only needs *a* client id.
+  let originalClientId: string | null;
+  beforeEach(() => {
+    originalClientId = env.stravaClientId;
+    env.stravaClientId = "test-client-id";
+  });
+  afterEach(() => {
+    env.stravaClientId = originalClientId;
+  });
+
   it("returns a Strava authorize URL carrying the access token as state", async () => {
     const res = await request(app).get("/strava/connect-url").set(auth(token));
     expect(res.status).toBe(200);
@@ -93,6 +104,12 @@ describe("GET /strava/connect-url", () => {
     expect(url.hostname).toBe("www.strava.com");
     expect(url.searchParams.get("state")).toBe(token);
     expect(url.searchParams.get("scope")).toBe("activity:read_all");
+  });
+
+  it("reports 503 when the server has no Strava credentials configured", async () => {
+    env.stravaClientId = null;
+    const res = await request(app).get("/strava/connect-url").set(auth(token));
+    expect(res.status).toBe(503);
   });
 });
 
