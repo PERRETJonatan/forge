@@ -13,6 +13,20 @@
       <a routerLink="/settings" routerLinkActive="active">Settings</a>
     </nav>
 
+    <div class="theme" role="radiogroup" aria-label="Theme">
+      @for (option of themeOptions; track option.value) {
+        <button
+          type="button"
+          role="radio"
+          [class.active]="themeService.preference() === option.value"
+          [attr.aria-checked]="themeService.preference() === option.value"
+          (click)="themeService.set(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+
     <div class="account">
       <div class="avatar">{{ (authService.athlete()?.name ?? '?').charAt(0) }}</div>
       <div class="account-info">

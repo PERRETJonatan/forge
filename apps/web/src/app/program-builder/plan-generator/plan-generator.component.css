@@ -3,8 +3,8 @@
 }
 
 .panel {
-  background: #ffffff;
-  border: 1px solid #e4e1d8;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 24px;
   max-width: 960px;
@@ -18,32 +18,32 @@ h2 {
   margin: 0 0 8px 0;
   font-family: 'Space Grotesk', sans-serif;
   font-size: 18px;
-  color: #141b22;
+  color: var(--text);
 }
 
 .hint {
   margin: 0 0 16px 0;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 13px;
   line-height: 1.5;
 }
 
 a {
-  color: #141b22;
+  color: var(--text);
   font-weight: 600;
 }
 
 .race-line {
   margin: 0 0 20px 0;
   font-size: 14px;
-  color: #141b22;
+  color: var(--text);
 }
 
 .small-link {
   margin-left: 6px;
   font-size: 12px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .form-grid {
@@ -67,18 +67,18 @@ a {
 .field-label {
   font-size: 12px;
   font-weight: 600;
-  color: #141b22;
+  color: var(--text);
 }
 
 input,
 select {
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid #e4e1d8;
+  border: 1px solid var(--border);
   font-size: 13px;
   font-family: inherit;
-  color: #141b22;
-  background: #ffffff;
+  color: var(--text);
+  background: var(--surface);
 }
 
 .unit-field {
@@ -93,15 +93,15 @@ select {
 
 .unit {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 button {
   padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid #e4e1d8;
-  background: #ffffff;
-  color: #141b22;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
@@ -116,9 +116,9 @@ button:disabled {
 button.active,
 .actions button,
 button.primary {
-  background: #141b22;
-  border-color: #141b22;
-  color: #ffffff;
+  background: var(--inverse-bg);
+  border-color: var(--inverse-bg);
+  color: var(--inverse-text);
 }
 
 .segmented,
@@ -135,7 +135,7 @@ button.primary {
 .form-error {
   margin: 0 0 12px 0;
   font-size: 13px;
-  color: #b6461f;
+  color: var(--danger-text);
 }
 
 .actions {
@@ -153,22 +153,22 @@ button.primary {
 
 .banner.info {
   margin: 0 0 16px 0;
-  background: #eef3fb;
-  color: #141b22;
+  background: var(--info-bg);
+  color: var(--text);
 }
 
 .banner.error {
-  background: #fff4ec;
-  color: #b6461f;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .banner.success {
-  background: #eaf6f0;
-  color: #1c7a52;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .banner.success a {
-  color: #1c7a52;
+  color: var(--success-text);
 }
 
 .preview-header {
@@ -183,7 +183,7 @@ button.primary {
   margin: 0 0 16px 0;
   padding-left: 18px;
   font-size: 13px;
-  color: #141b22;
+  color: var(--text);
   line-height: 1.6;
 }
 
@@ -196,11 +196,11 @@ button.primary {
 
 .weeks {
   margin-top: 20px;
-  border-top: 1px solid #eeece6;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .weeks > li {
-  border-bottom: 1px solid #eeece6;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 summary {
@@ -220,7 +220,7 @@ summary::-webkit-details-marker {
 
 summary::before {
   content: '▸';
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 11px;
   transition: transform 0.15s;
 }
@@ -231,28 +231,28 @@ details[open] > summary::before {
 
 .week-date {
   font-weight: 600;
-  color: #141b22;
+  color: var(--text);
   min-width: 110px;
 }
 
 .phase {
   padding: 2px 8px;
   border-radius: 999px;
-  background: #f1efe9;
-  color: #141b22;
+  background: var(--surface-3);
+  color: var(--text);
   font-size: 11px;
   font-weight: 600;
 }
 
 .phase.recovery {
-  background: #ffffff;
-  border: 1px solid #e4e1d8;
-  color: #6b7280;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
 }
 
 .week-stats {
   margin-left: auto;
-  color: #6b7280;
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -266,7 +266,7 @@ details[open] > summary::before {
 
 .day-label {
   width: 32px;
-  color: #6b7280;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
@@ -279,17 +279,17 @@ details[open] > summary::before {
 
 .workout-title {
   font-weight: 600;
-  color: #141b22;
+  color: var(--text);
 }
 
 .workout-meta {
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .workout-notes {
   margin: 0 0 8px 60px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .workouts app-workout-steps {

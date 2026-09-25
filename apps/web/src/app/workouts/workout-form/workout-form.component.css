@@ -17,7 +17,7 @@
 .panel {
   width: 100%;
   max-width: 480px;
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 14px;
   padding: 24px;
   display: flex;
@@ -35,7 +35,7 @@
   margin: 0;
   font-family: 'Space Grotesk', sans-serif;
   font-size: 20px;
-  color: #141b22;
+  color: var(--text);
 }
 
 .close {
@@ -43,7 +43,7 @@
   background: transparent;
   font-size: 22px;
   line-height: 1;
-  color: #6b7280;
+  color: var(--text-muted);
   cursor: pointer;
 }
 
@@ -59,7 +59,7 @@ label {
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #141b22;
+  color: var(--text);
 }
 
 label.checkbox {
@@ -73,7 +73,7 @@ select,
 textarea {
   padding: 9px 11px;
   border-radius: 8px;
-  border: 1px solid #e4e1d8;
+  border: 1px solid var(--border);
   font-size: 14px;
   font-family: inherit;
 }
@@ -83,7 +83,7 @@ textarea {
 }
 
 fieldset {
-  border: 1px solid #e4e1d8;
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 14px;
   display: flex;
@@ -94,7 +94,7 @@ fieldset {
 legend {
   font-size: 12px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   padding: 0 6px;
 }
 
@@ -104,17 +104,17 @@ legend {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 14px;
-  background: #fff4ec;
+  background: var(--danger-bg);
   border-radius: 8px;
   font-size: 12px;
-  color: #b6461f;
+  color: var(--danger-text);
 }
 
 .text-btn {
   background: none;
   border: none;
   padding: 0;
-  color: #b6461f;
+  color: var(--danger-text);
   font-weight: 700;
   font-size: 12px;
   text-decoration: underline;
@@ -136,8 +136,8 @@ button {
   padding: 10px 16px;
   border-radius: 8px;
   border: none;
-  background: #141b22;
-  color: #ffffff;
+  background: var(--inverse-bg);
+  color: var(--inverse-text);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -150,12 +150,12 @@ button:disabled {
 }
 
 button.secondary {
-  background: #f0efe9;
-  color: #141b22;
+  background: var(--surface-3);
+  color: var(--text);
 }
 
 button.delete {
   background: transparent;
-  color: #b6461f;
+  color: var(--danger-text);
   padding-left: 0;
 }

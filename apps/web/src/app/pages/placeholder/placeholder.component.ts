@@ -15,11 +15,11 @@ import { ActivatedRoute } from '@angular/router';
         font-family: 'Space Grotesk', sans-serif;
         font-size: 26px;
         font-weight: 700;
-        color: #141b22;
+        color: var(--text);
       }
       .note {
         margin: 0;
-        color: #6b7280;
+        color: var(--text-muted);
         font-size: 14px;
       }
     `,

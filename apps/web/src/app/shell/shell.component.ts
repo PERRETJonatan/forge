@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../core/auth.service';
+import { ThemeService, type ThemePreference } from '../core/theme.service';
 
 @Component({
   selector: 'app-shell',
@@ -10,8 +11,15 @@ import { AuthService } from '../core/auth.service';
   styleUrl: './shell.component.css',
 })
 export class ShellComponent {
+  readonly themeOptions: { value: ThemePreference; label: string }[] = [
+    { value: 'system', label: 'System' },
+    { value: 'light', label: 'Light' },
+    { value: 'dark', label: 'Dark' },
+  ];
+
   constructor(
     protected authService: AuthService,
+    protected themeService: ThemeService,
     private router: Router,
   ) {}
 

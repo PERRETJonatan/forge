@@ -6,14 +6,15 @@
 .shell {
   display: flex;
   min-height: 100vh;
-  background: #f6f5f1;
-  color: #141b22;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .sidebar {
   width: 240px;
   flex-shrink: 0;
-  background: #141b22;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   color: #f6f5f1;
   display: flex;
   flex-direction: column;
@@ -69,8 +70,36 @@ nav a.active {
   font-weight: 600;
 }
 
-.account {
+.theme {
   margin-top: auto;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.theme button {
+  flex: 1;
+  padding: 5px 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #9aa5b1;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.theme button.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f6f5f1;
+  font-weight: 600;
+}
+
+.account {
   display: flex;
   align-items: center;
   gap: 10px;

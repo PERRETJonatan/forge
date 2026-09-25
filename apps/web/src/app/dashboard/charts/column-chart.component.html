@@ -24,7 +24,8 @@
       @for (band of l.bands; track $index) {
         <g [class.dimmed]="hoverIndex() !== null && hoverIndex() !== $index">
           @for (mark of band.marks; track $index) {
-            <path [attr.d]="mark.d" [attr.fill]="mark.color" />
+            <!-- style, not the fill attribute: colors can be CSS variables, which attributes don't resolve. -->
+            <path [attr.d]="mark.d" [style.fill]="mark.color" />
           }
         </g>
         <!-- Hit target is the whole week band, not just the painted bar. -->

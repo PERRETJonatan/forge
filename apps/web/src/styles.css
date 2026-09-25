@@ -1,3 +1,101 @@
+/*
+ * Theme tokens. Every component stylesheet colors itself through these, so light/dark is
+ * decided here once. The theme is chosen by `data-theme` on <html> (set by ThemeService, and
+ * before first paint by the inline script in index.html): "light" or "dark" force a theme;
+ * no attribute follows the OS setting via prefers-color-scheme.
+ */
+:root {
+  color-scheme: light;
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --surface-2: #faf9f5;
+  --surface-3: #f1efe9;
+  --border: #e4e1d8;
+  --border-subtle: #eeece6;
+  --border-strong: #c9c3b4;
+  --text: #141b22;
+  --text-muted: #6b7280;
+  --text-faint: #b3ada0;
+  /* Primary buttons, active toggles, today marker: ink-colored fill with surface-colored text. */
+  --inverse-bg: #141b22;
+  --inverse-text: #ffffff;
+  --accent: #e8603c;
+  --accent-teal: #0e7c7b;
+  --danger-text: #b6461f;
+  --danger-bg: #fff4ec;
+  --success-text: #1c7a52;
+  --success-bg: #eaf6f0;
+  --info-bg: #eef3fb;
+  --shadow: rgba(20, 27, 34, 0.1);
+  /* The sidebar is dark in both themes; in dark mode it sits a step below the page. */
+  --sidebar-bg: #141b22;
+  --sidebar-border: transparent;
+  /* Chart series (dataviz palette slots 1-3), stepped per theme. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0f1418;
+    --surface: #171d23;
+    --surface-2: #1c232a;
+    --surface-3: #232b33;
+    --border: #2b343d;
+    --border-subtle: #222a31;
+    --border-strong: #3e4852;
+    --text: #e6e8eb;
+    --text-muted: #9aa3ad;
+    --text-faint: #5f6974;
+    --inverse-bg: #e6e8eb;
+    --inverse-text: #141b22;
+    --accent: #f07a55;
+    --accent-teal: #3cb8b6;
+    --danger-text: #f2956f;
+    --danger-bg: #3a2218;
+    --success-text: #62d29f;
+    --success-bg: #15302a;
+    --info-bg: #1a2a3e;
+    --shadow: rgba(0, 0, 0, 0.45);
+    --sidebar-bg: #0a0e12;
+    --sidebar-border: #1f262d;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f1418;
+  --surface: #171d23;
+  --surface-2: #1c232a;
+  --surface-3: #232b33;
+  --border: #2b343d;
+  --border-subtle: #222a31;
+  --border-strong: #3e4852;
+  --text: #e6e8eb;
+  --text-muted: #9aa3ad;
+  --text-faint: #5f6974;
+  --inverse-bg: #e6e8eb;
+  --inverse-text: #141b22;
+  --accent: #f07a55;
+  --accent-teal: #3cb8b6;
+  --danger-text: #f2956f;
+  --danger-bg: #3a2218;
+  --success-text: #62d29f;
+  --success-bg: #15302a;
+  --info-bg: #1a2a3e;
+  --shadow: rgba(0, 0, 0, 0.45);
+  --sidebar-bg: #0a0e12;
+  --sidebar-border: #1f262d;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -5,6 +103,15 @@
 body {
   margin: 0;
   font-family: 'Work Sans', system-ui, sans-serif;
-  background: #f6f5f1;
-  color: #141b22;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Most component styles don't set a field background, which only looked right while the
+   browser default (white) matched the light surface. Components that do set one still win. */
+input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']),
+select,
+textarea {
+  background-color: var(--surface);
+  color: var(--text);
 }

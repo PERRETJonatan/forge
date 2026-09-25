@@ -113,8 +113,8 @@ export class DashboardPageComponent {
   }));
 
   readonly loadSeries: ColumnSeries[] = [
-    { key: 'planned', label: 'Planned', color: '#2a78d6' },
-    { key: 'actual', label: 'Actual', color: '#eb6834' },
+    { key: 'planned', label: 'Planned', color: 'var(--series-1)' },
+    { key: 'actual', label: 'Actual', color: 'var(--series-2)' },
   ];
 
   /** Weeks entirely in the future have no volume or actual load yet -- leave them out. */
