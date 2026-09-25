@@ -1,9 +1,20 @@
 <h1>Program builder</h1>
 <p class="subtitle">
-  Assemble a workout from steps, save it as a reusable template, and add it to your calendar.
-  Coach-assisted drafting lands with the virtual coach in a later milestone.
+  Generate a whole training plan to your race, or assemble a single workout from steps.
 </p>
 
+<div class="tabs" role="tablist">
+  <button type="button" role="tab" [class.active]="mode() === 'plan'" [attr.aria-selected]="mode() === 'plan'" (click)="mode.set('plan')">
+    Training plan
+  </button>
+  <button type="button" role="tab" [class.active]="mode() === 'workout'" [attr.aria-selected]="mode() === 'workout'" (click)="mode.set('workout')">
+    Single workout
+  </button>
+</div>
+
+@if (mode() === 'plan') {
+  <app-plan-generator />
+} @else {
 <div class="layout">
   <section class="panel builder">
     <div class="builder-header">
@@ -164,6 +175,8 @@
     </ul>
   </section>
 </div>
+
+}
 
 <ng-template #stepRow let-step="step" let-setLow="setLow" let-update="update" let-remove="remove">
   <div class="step-row">

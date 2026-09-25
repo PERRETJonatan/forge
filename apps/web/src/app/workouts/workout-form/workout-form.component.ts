@@ -1,14 +1,22 @@
-import { LowerCasePipe } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import type { CreateWorkoutRequest, Discipline, Workout } from '@forge/shared';
+import type { CreateWorkoutRequest, Discipline, Workout, WorkoutSource } from '@forge/shared';
 import { DISCIPLINES, DISCIPLINE_LABELS } from '../discipline';
 import { WorkoutStepsComponent } from '../workout-steps/workout-steps.component';
+
+/** Where a workout's structured steps came from, for the steps fieldset legend. */
+const STEPS_ORIGIN: Record<WorkoutSource, string> = {
+  MANUAL: 'built in the program builder',
+  IMPORT: 'from an imported plan',
+  GENERATED: 'from your generated plan',
+  COACH_DRAFT: 'drafted by the coach',
+  STRAVA: 'from Strava',
+};
 
 @Component({
   selector: 'app-workout-form',
   standalone: true,
-  imports: [ReactiveFormsModule, WorkoutStepsComponent, LowerCasePipe],
+  imports: [ReactiveFormsModule, WorkoutStepsComponent],
   templateUrl: './workout-form.component.html',
   styleUrl: './workout-form.component.css',
 })
@@ -23,6 +31,10 @@ export class WorkoutFormComponent implements OnChanges {
   private fb = inject(FormBuilder);
 
   readonly disciplines = DISCIPLINES;
+
+  stepsOrigin(source: WorkoutSource): string {
+    return STEPS_ORIGIN[source];
+  }
   readonly disciplineLabels = DISCIPLINE_LABELS;
   readonly submitting = signal(false);
 

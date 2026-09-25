@@ -17,6 +17,31 @@ h1 {
   font-size: 14px;
 }
 
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e4e1d8;
+}
+
+.tabs button {
+  padding: 8px 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.tabs button.active {
+  color: #141b22;
+  border-bottom-color: #141b22;
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);

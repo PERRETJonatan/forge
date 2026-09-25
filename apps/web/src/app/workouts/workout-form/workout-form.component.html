@@ -33,7 +33,7 @@
 
     @if (workout?.structuredIntervals?.length) {
       <fieldset>
-        <legend>Structured steps (from {{ workout!.source | lowercase }} import)</legend>
+        <legend>Structured steps ({{ stepsOrigin(workout!.source) }})</legend>
         <app-workout-steps [steps]="workout!.structuredIntervals!" />
       </fieldset>
     }

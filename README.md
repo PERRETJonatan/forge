@@ -90,4 +90,18 @@ The API tests run against the same local Postgres instance as dev (see `apps/api
     computes these from rolling windows over activity streams, which Strava sync doesn't fetch
     yet (see milestone 6).
 
+- Plan generator (program builder → Training plan tab): generates a whole periodized plan to
+  the athlete's target race from race distance (Sprint/Olympic/70.3/Ironman), start date, peak
+  weekly hours, training days and long-ride/long-run days. Phases are counted back from race
+  day (base → build → peak → taper → race week), with a 3:1 load/recovery rhythm and weekly
+  hours ramped (≤10%/week) from what current fitness (CTL) implies up to the peak. Each week's
+  hours are split across swim/bike/run by race distance and placed on available days as
+  structured %-of-threshold workouts (long ride/run, quality sessions, bricks from the build
+  phase, race-week openers). Preview first; "Add to calendar" writes `source: GENERATED`
+  workouts. Regenerating replaces only the previous generated plan's future, not-completed
+  workouts -- hand-built, imported and completed workouts are kept and their days left alone.
+  Strava sync matches activities to generated workouts like any other planned workout. Backed
+  by `POST /plan-generator/preview|apply` (`apps/api/src/plan-generator`: pure, deterministic
+  generator + workout library, so apply writes exactly what was previewed).
+
 Remaining roadmap (placeholder pages until then): virtual coach (milestone 8), settings profile tab (later milestone); peak performances once activity streams are synced.

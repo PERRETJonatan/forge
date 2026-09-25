@@ -65,6 +65,9 @@ enum WorkoutSource {
   IMPORT
   STRAVA
   COACH_DRAFT
+  /// Written by the plan generator (program builder -> Training plan). Regenerating replaces
+  /// only these (future, not completed), never hand-built or imported workouts.
+  GENERATED
 }
 
 model Workout {

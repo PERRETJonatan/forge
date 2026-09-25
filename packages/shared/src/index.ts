@@ -23,7 +23,7 @@ export interface LoginRequest {
 
 export type Discipline = 'SWIM' | 'BIKE' | 'RUN' | 'STRENGTH' | 'OTHER';
 
-export type WorkoutSource = 'MANUAL' | 'IMPORT' | 'STRAVA' | 'COACH_DRAFT';
+export type WorkoutSource = 'MANUAL' | 'IMPORT' | 'STRAVA' | 'COACH_DRAFT' | 'GENERATED';
 
 /**
  * Unit a step's target is expressed in. Imported plans can carry whatever unit the source
@@ -218,6 +218,60 @@ export interface FitnessDashboardQuery {
   from?: string;
   to?: string;
   today?: string;
+}
+
+export type RaceDistance = 'SPRINT' | 'OLYMPIC' | 'HALF' | 'FULL';
+
+export type TrainingPhase = 'BASE' | 'BUILD' | 'PEAK' | 'TAPER' | 'RACE';
+
+/** Weekday index, Monday = 0 ... Sunday = 6 (same convention as the calendar grid). */
+export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface PlanGenerationRequest {
+  /** First day of the plan; the race date comes from the athlete's race target. */
+  startDate: string;
+  raceDistance: RaceDistance;
+  /** Hours in the biggest (peak) week; the plan ramps up to this from current fitness. */
+  maxWeeklyHours: number;
+  trainingDays: Weekday[];
+  longRideDay: Weekday;
+  longRunDay: Weekday;
+}
+
+export interface GeneratedWorkout {
+  date: string;
+  discipline: Discipline;
+  title: string;
+  notes: string;
+  targetDurationSec: number;
+  structuredIntervals: WorkoutStep[];
+  estimatedTss: number;
+}
+
+export interface GeneratedWeek {
+  weekStart: string;
+  phase: TrainingPhase;
+  recovery: boolean;
+  plannedHours: number;
+  plannedTss: number;
+  workouts: GeneratedWorkout[];
+}
+
+export interface PlanPreview {
+  raceName: string | null;
+  raceDate: string;
+  /** Weekly hours the plan starts from, derived from current fitness (CTL). */
+  startingHours: number;
+  weeks: GeneratedWeek[];
+  /** Future, not-completed workouts from a previous generated plan that applying would replace. */
+  replacesCount: number;
+  /** Dates left alone because a hand-built/imported (or completed) workout is already there. */
+  keptDates: string[];
+}
+
+export interface PlanApplyResult {
+  created: number;
+  deleted: number;
 }
 
 export * from './tss.js';

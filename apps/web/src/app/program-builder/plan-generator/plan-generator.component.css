@@ -1,0 +1,298 @@
+:host {
+  display: block;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #e4e1d8;
+  border-radius: 14px;
+  padding: 24px;
+  max-width: 960px;
+}
+
+.panel + .panel {
+  margin-top: 20px;
+}
+
+h2 {
+  margin: 0 0 8px 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  color: #141b22;
+}
+
+.hint {
+  margin: 0 0 16px 0;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+a {
+  color: #141b22;
+  font-weight: 600;
+}
+
+.race-line {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  color: #141b22;
+}
+
+.small-link {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.form-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  margin-bottom: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-grid .field {
+  margin-bottom: 0;
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #141b22;
+}
+
+input,
+select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e4e1d8;
+  font-size: 13px;
+  font-family: inherit;
+  color: #141b22;
+  background: #ffffff;
+}
+
+.unit-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unit-field input {
+  width: 80px;
+}
+
+.unit {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #e4e1d8;
+  background: #ffffff;
+  color: #141b22;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+button.active,
+.actions button,
+button.primary {
+  background: #141b22;
+  border-color: #141b22;
+  color: #ffffff;
+}
+
+.segmented,
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.day {
+  min-width: 52px;
+}
+
+.form-error {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #b6461f;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.banner {
+  margin-top: 16px;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.banner.info {
+  margin: 0 0 16px 0;
+  background: #eef3fb;
+  color: #141b22;
+}
+
+.banner.error {
+  background: #fff4ec;
+  color: #b6461f;
+}
+
+.banner.success {
+  background: #eaf6f0;
+  color: #1c7a52;
+}
+
+.banner.success a {
+  color: #1c7a52;
+}
+
+.preview-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.notes {
+  margin: 0 0 16px 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #141b22;
+  line-height: 1.6;
+}
+
+.weeks,
+.workouts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.weeks {
+  margin-top: 20px;
+  border-top: 1px solid #eeece6;
+}
+
+.weeks > li {
+  border-bottom: 1px solid #eeece6;
+}
+
+summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 4px;
+  cursor: pointer;
+  font-size: 13px;
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+summary::before {
+  content: '▸';
+  color: #6b7280;
+  font-size: 11px;
+  transition: transform 0.15s;
+}
+
+details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.week-date {
+  font-weight: 600;
+  color: #141b22;
+  min-width: 110px;
+}
+
+.phase {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1efe9;
+  color: #141b22;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.phase.recovery {
+  background: #ffffff;
+  border: 1px solid #e4e1d8;
+  color: #6b7280;
+}
+
+.week-stats {
+  margin-left: auto;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.workouts {
+  padding: 0 0 12px 20px;
+}
+
+.workouts summary {
+  padding: 6px 4px;
+}
+
+.day-label {
+  width: 32px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.workout-title {
+  font-weight: 600;
+  color: #141b22;
+}
+
+.workout-meta {
+  color: #6b7280;
+}
+
+.workout-notes {
+  margin: 0 0 8px 60px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.workouts app-workout-steps {
+  display: block;
+  margin: 0 0 12px 60px;
+}

@@ -1,0 +1,188 @@
+<section class="panel">
+  <h2>Generate a training plan</h2>
+  <p class="hint">
+    Builds a periodized plan to your race: base, build, peak and taper phases, a lighter week
+    every fourth week, and hours that ramp up from your current fitness to your peak week. Every
+    session is a structured workout you can open and edit. Nothing is added to your calendar
+    until you've reviewed the preview.
+  </p>
+
+  @if (raceLoaded() && !race()?.raceDate) {
+    <div class="banner info">
+      Set your target race (event and date) in <a routerLink="/settings">Settings</a> first. The plan counts back from race day.
+    </div>
+  } @else if (race()?.raceDate) {
+    <p class="race-line">
+      Training for <strong>{{ race()!.raceName || 'your race' }}</strong> on <strong>{{ race()!.raceDate }}</strong>
+      <a routerLink="/settings" class="small-link">change</a>
+    </p>
+  }
+
+  <div class="form-grid">
+    <div class="field">
+      <span class="field-label">Race distance</span>
+      <div class="segmented" role="group" aria-label="Race distance">
+        @for (d of distances; track d.value) {
+          <button
+            type="button"
+            [class.active]="raceDistance() === d.value"
+            [attr.aria-pressed]="raceDistance() === d.value"
+            (click)="setDistance(d.value)"
+          >
+            {{ d.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <label class="field">
+      <span class="field-label">Start on</span>
+      <input type="date" [value]="startDate()" (input)="setStartDate($any($event.target).value)" />
+    </label>
+
+    <label class="field">
+      <span class="field-label">Peak week</span>
+      <div class="unit-field">
+        <input
+          type="number"
+          min="3"
+          max="30"
+          step="0.5"
+          [value]="maxWeeklyHours()"
+          (input)="setMaxHours(+$any($event.target).value)"
+        />
+        <span class="unit">hours</span>
+      </div>
+    </label>
+  </div>
+
+  <div class="field">
+    <span class="field-label">Training days</span>
+    <div class="days" role="group" aria-label="Training days">
+      @for (day of weekdays; track day.value) {
+        <button
+          type="button"
+          class="day"
+          [class.active]="trainingDays().includes(day.value)"
+          [attr.aria-pressed]="trainingDays().includes(day.value)"
+          (click)="toggleDay(day.value)"
+        >
+          {{ day.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <label class="field">
+      <span class="field-label">Long ride on</span>
+      <select [value]="longRideDay()" (change)="setLongRideDay(+$any($event.target).value)">
+        @for (day of weekdays; track day.value) {
+          <option [value]="day.value" [selected]="day.value === longRideDay()">{{ day.label }}</option>
+        }
+      </select>
+    </label>
+    <label class="field">
+      <span class="field-label">Long run on</span>
+      <select [value]="longRunDay()" (change)="setLongRunDay(+$any($event.target).value)">
+        @for (day of weekdays; track day.value) {
+          <option [value]="day.value" [selected]="day.value === longRunDay()">{{ day.label }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (formError(); as problem) {
+    <p class="form-error">{{ problem }}</p>
+  }
+
+  <div class="actions">
+    <button type="button" [disabled]="busy() || !!formError() || !race()?.raceDate" (click)="generatePreview()">
+      {{ busy() && !preview() ? 'Generating…' : preview() ? 'Regenerate preview' : 'Preview plan' }}
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="banner error">{{ error() }}</div>
+  }
+  @if (applied()) {
+    <div class="banner success">
+      {{ applied() }} <a routerLink="/calendar">Open calendar</a> · <a routerLink="/dashboard">See projected fitness</a>
+    </div>
+  }
+</section>
+
+@if (preview(); as plan) {
+  <section class="panel preview">
+    <div class="preview-header">
+      <div>
+        <h2>{{ plan.weeks.length }}-week plan · {{ workoutCount() }} workouts</h2>
+        <p class="hint">
+          Starts at {{ plan.startingHours }} h/week (from your current fitness) and peaks at
+          {{ peakHours() }} h. Percent targets follow your thresholds in Settings.
+        </p>
+      </div>
+      <button type="button" class="primary" [disabled]="busy()" (click)="applyPlan()">
+        {{ busy() ? 'Adding…' : 'Add ' + workoutCount() + ' workouts to calendar' }}
+      </button>
+    </div>
+
+    @if (plan.replacesCount > 0 || plan.keptDates.length > 0) {
+      <ul class="notes">
+        @if (plan.replacesCount > 0) {
+          <li>Replaces {{ plan.replacesCount }} upcoming workouts from your previous generated plan.</li>
+        }
+        @if (plan.keptDates.length > 0) {
+          <li>
+            Keeps {{ plan.keptDates.length }} day{{ plan.keptDates.length === 1 ? ' that already has' : 's that already have' }}
+            workouts you built, imported or completed. The plan works around them.
+          </li>
+        }
+      </ul>
+    }
+
+    <app-column-chart
+      [rows]="hoursRows()"
+      [series]="hoursSeries"
+      mode="stacked"
+      [format]="formatHours"
+      ariaLabel="Planned weekly hours by discipline."
+    />
+
+    <ol class="weeks">
+      @for (week of plan.weeks; track week.weekStart) {
+        <li>
+          <details>
+            <summary>
+              <span class="week-date">Week of {{ shortDate(week.weekStart) }}</span>
+              <span class="phase" [attr.data-phase]="week.phase">{{ phaseLabels[week.phase] }}</span>
+              @if (week.recovery) {
+                <span class="phase recovery">Recovery</span>
+              }
+              <span class="week-stats">{{ week.plannedHours }} h · {{ week.plannedTss }} TSS</span>
+            </summary>
+            <ul class="workouts">
+              @for (workout of week.workouts; track trackWorkout(workout)) {
+                <li>
+                  <details>
+                    <summary>
+                      <span class="day-label">{{ dayLabel(workout.date) }}</span>
+                      <span class="dot" [style.background]="disciplineColors[workout.discipline]"></span>
+                      <span class="workout-title">{{ workout.title }}</span>
+                      <span class="workout-meta">
+                        {{ disciplineLabels[workout.discipline] }} · {{ formatDuration(workout.targetDurationSec) }} ·
+                        {{ workout.estimatedTss }} TSS
+                      </span>
+                    </summary>
+                    <p class="workout-notes">{{ workout.notes }}</p>
+                    <app-workout-steps [steps]="workout.structuredIntervals" />
+                  </details>
+                </li>
+              }
+            </ul>
+          </details>
+        </li>
+      }
+    </ol>
+  </section>
+}

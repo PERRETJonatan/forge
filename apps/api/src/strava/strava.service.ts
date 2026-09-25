@@ -183,7 +183,7 @@ export async function syncActivities(athleteId: string): Promise<SyncResult> {
 
       const date = activityDay(activity.start_date);
       const matchTarget = await prisma.workout.findFirst({
-        where: { athleteId, date, discipline, source: { in: ["MANUAL", "IMPORT"] }, stravaActivity: { is: null } },
+        where: { athleteId, date, discipline, source: { in: ["MANUAL", "IMPORT", "GENERATED"] }, stravaActivity: { is: null } },
         orderBy: { createdAt: "asc" },
       });
 

@@ -168,6 +168,18 @@ describe("POST /strava/sync", () => {
     expect(workouts.body[0].stravaActivityId).not.toBeNull();
   });
 
+  it("matches a synced activity to a workout from a generated plan", async () => {
+    await connect();
+    const athlete = await prisma.athlete.findUniqueOrThrow({ where: { email: "athlete@example.com" } });
+    await prisma.workout.create({
+      data: { athleteId: athlete.id, source: "GENERATED", discipline: "BIKE", date: new Date("2026-09-20T00:00:00Z") },
+    });
+    fakeClient.activitiesByPage = [[activity({ id: 1 })]];
+
+    const res = await request(app).post("/strava/sync").set(auth(token));
+    expect(res.body).toEqual({ fetched: 1, matchedExisting: 1, createdNew: 0 });
+  });
+
   it("creates a new source: STRAVA workout when nothing matches", async () => {
     await connect();
     fakeClient.activitiesByPage = [[activity({ id: 2, type: "Run", distance: 10000 })]];

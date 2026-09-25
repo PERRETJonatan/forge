@@ -8,6 +8,7 @@ import { WorkoutService } from '../workouts/workout.service';
 import { ThresholdsService } from '../thresholds/thresholds.service';
 import { WorkoutTemplateService } from '../workout-templates/workout-template.service';
 import { formatPace, parsePace } from '../shared/pace';
+import { PlanGeneratorComponent } from './plan-generator/plan-generator.component';
 import { TARGET_UNITS_BY_DISCIPLINE, targetUnitConfig } from './target-units';
 
 /** A repeat group is one level deep -- e.g. "6x (4min on, 2min off)" -- matching what every
@@ -32,7 +33,7 @@ const EMPTY_THRESHOLDS: AthleteThresholds = {
 @Component({
   selector: 'app-program-builder-page',
   standalone: true,
-  imports: [NgTemplateOutlet, DecimalPipe],
+  imports: [NgTemplateOutlet, DecimalPipe, PlanGeneratorComponent],
   templateUrl: './program-builder-page.component.html',
   styleUrl: './program-builder-page.component.css',
 })
@@ -40,6 +41,8 @@ export class ProgramBuilderPageComponent {
   private workoutService = inject(WorkoutService);
   private thresholdsService = inject(ThresholdsService);
   private templateService = inject(WorkoutTemplateService);
+
+  readonly mode = signal<'plan' | 'workout'>('plan');
 
   readonly disciplines = DISCIPLINES;
   readonly disciplineLabels = DISCIPLINE_LABELS;
