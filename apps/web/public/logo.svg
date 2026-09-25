@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Forge</title>
+  <rect width="64" height="64" rx="14" fill="#e8603c"/>
+  <path d="M40 9 L42.2 15.8 L49 18 L42.2 20.2 L40 27 L37.8 20.2 L31 18 L37.8 15.8 Z" fill="#ffffff"/>
+  <path d="M9 29 C16 29 19 28 21 26 H53 V33 H45 L41 38 V43 H47 V50 H19 V43 H25 V38 L21 33 H20 C15 33 11 31.5 9 29 Z" fill="#141b22"/>
+</svg>

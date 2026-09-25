@@ -26,16 +26,9 @@
 }
 
 .auth-logo {
+  display: block;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: #e8603c;
-  color: #141b22;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-family: 'Space Grotesk', sans-serif;
 }
 
 .auth-brand span {
