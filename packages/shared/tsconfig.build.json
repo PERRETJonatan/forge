@@ -1,0 +1,14 @@
+// Compiles @forge/shared to dist/ for plain `node` (the API's production image). Dev tooling
+// never needs this build: package.json "exports" sends tsx/vitest (via the "@forge/source"
+// condition) and TypeScript (via "types") straight to src/, and the web app maps the package
+// to src/ with tsconfig "paths" since Angular bundles it from source anyway.
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}

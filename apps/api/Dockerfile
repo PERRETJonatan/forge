@@ -11,7 +11,7 @@ RUN npm ci --workspace apps/api --include-workspace-root
 COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
 COPY apps/api apps/api
-RUN npm run prisma:generate --workspace apps/api && npm run build --workspace apps/api
+RUN npm run build --workspace packages/shared && npm run prisma:generate --workspace apps/api && npm run build --workspace apps/api
 
 FROM node:20-alpine
 RUN apk add --no-cache openssl
@@ -25,6 +25,9 @@ RUN npm ci --omit=dev --workspace apps/api && npm cache clean --force
 COPY apps/api/prisma apps/api/prisma
 RUN npx --workspace apps/api prisma generate
 COPY --from=build /app/apps/api/dist apps/api/dist
+# Plain `node` resolves @forge/shared to its compiled dist/ (see packages/shared/package.json
+# "exports"), so the runtime image needs that build, not the TypeScript source.
+COPY --from=build /app/packages/shared/dist packages/shared/dist
 
 WORKDIR /app/apps/api
 EXPOSE 3000
