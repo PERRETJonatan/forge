@@ -6,7 +6,8 @@ export function formatPace(totalSec: number | null): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
-/** Parses an "mm:ss" (or plain seconds) input back into seconds. Returns null if unparseable. */
+/** Parses an "mm:ss" (or whole plain seconds) input back into seconds. Returns null if unparseable.
+ * Decimals are rejected rather than read as seconds: "5.45" is a mistyped 5:45, not 5 s. */
 export function parsePace(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -14,6 +15,7 @@ export function parsePace(value: string): number | null {
   if (match) {
     return Number(match[1]) * 60 + Number(match[2]);
   }
+  if (!/^\d+$/.test(trimmed)) return null;
   const seconds = Number(trimmed);
-  return Number.isFinite(seconds) && seconds > 0 ? Math.round(seconds) : null;
+  return seconds > 0 ? seconds : null;
 }

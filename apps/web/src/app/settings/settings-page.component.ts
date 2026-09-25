@@ -11,6 +11,17 @@ import { formatPace, parsePace } from '../shared/pace';
 import { StravaService } from '../strava/strava.service';
 import { ThresholdsService } from '../thresholds/thresholds.service';
 
+/** Says why a save failed, so a network or server problem isn't mistaken for bad input. */
+function saveErrorMessage(err: unknown, what: string): string {
+  if (err instanceof HttpErrorResponse) {
+    if (err.status === 0) return `Could not reach the Forge server to save your ${what}. Check it's running and try again.`;
+    if (err.status === 401) return 'Your session has expired. Log in again, then save.';
+    if (err.status === 400) return `The server rejected your ${what}. Check the values and try again.`;
+    return `Could not save your ${what} (server error ${err.status}). Try again.`;
+  }
+  return `Could not save your ${what}. Try again.`;
+}
+
 const DATELESS_EXTENSIONS = new Set(['fit', 'tcx']);
 
 function extensionOf(filename: string): string {
@@ -162,8 +173,8 @@ export class SettingsPageComponent {
       this.raceForm.reset({ raceName: updated.raceName ?? '', raceDate: updated.raceDate ?? '' });
       this.raceSaved.set(true);
       setTimeout(() => this.raceSaved.set(false), 2000);
-    } catch {
-      this.raceError.set('Could not save your target race. Try again.');
+    } catch (err) {
+      this.raceError.set(saveErrorMessage(err, 'target race'));
     } finally {
       this.raceSaving.set(false);
     }
@@ -184,15 +195,28 @@ export class SettingsPageComponent {
   }
 
   async saveThresholds(): Promise<void> {
+    const v = this.thresholdsForm.getRawValue();
+    // A blank pace clears that threshold; anything else must parse, or a typo would silently
+    // clear the saved value instead of flagging it.
+    const runPace = parsePace(v.runThresholdPace ?? '');
+    const swimPace = parsePace(v.swimThresholdPace ?? '');
+    const invalid = [
+      v.runThresholdPace?.trim() && runPace == null ? 'run threshold pace' : null,
+      v.swimThresholdPace?.trim() && swimPace == null ? 'swim CSS' : null,
+    ].filter((f): f is string => f != null);
+    if (invalid.length) {
+      this.thresholdsError.set(`Enter the ${invalid.join(' and ')} as mm:ss, e.g. 5:45.`);
+      return;
+    }
+
     this.thresholdsSaving.set(true);
     this.thresholdsError.set(null);
     this.thresholdsSaved.set(false);
     try {
-      const v = this.thresholdsForm.getRawValue();
       const updated = await this.thresholdsService.update({
         ftpWatts: v.ftpWatts,
-        runThresholdPaceSecPerKm: parsePace(v.runThresholdPace ?? ''),
-        swimThresholdPaceSec100m: parsePace(v.swimThresholdPace ?? ''),
+        runThresholdPaceSecPerKm: runPace,
+        swimThresholdPaceSec100m: swimPace,
         thresholdHr: v.thresholdHr,
       });
       this.thresholdsForm.reset({
@@ -203,8 +227,8 @@ export class SettingsPageComponent {
       });
       this.thresholdsSaved.set(true);
       setTimeout(() => this.thresholdsSaved.set(false), 2000);
-    } catch {
-      this.thresholdsError.set('Could not save thresholds. Check the pace format (mm:ss) and try again.');
+    } catch (err) {
+      this.thresholdsError.set(saveErrorMessage(err, 'thresholds'));
     } finally {
       this.thresholdsSaving.set(false);
     }
