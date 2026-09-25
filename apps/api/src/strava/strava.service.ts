@@ -1,6 +1,6 @@
 import type { StravaConnection } from "@prisma/client";
 import { prisma } from "../db.js";
-import { verifyAccessToken } from "../auth/jwt.js";
+import { verifyStravaState } from "../auth/jwt.js";
 import { toDate } from "../workouts/workout.service.js";
 import { createHttpStravaClient, StravaApiError, type StravaClient } from "./strava-client.js";
 import { disciplineForStravaType, summarizeIntensity } from "./strava-mapping.js";
@@ -35,10 +35,8 @@ export function callbackUrl(): string {
   return `${env.apiPublicUrl}/strava/callback`;
 }
 
-/** `state` is the athlete's own (short-lived) JWT access token: Strava's redirect is a plain
- * browser GET with no way to carry an Authorization header, so this is how the callback
- * recovers which athlete started the flow -- a v1/local-dev simplification (15min TTL, see
- * jwt.ts) rather than a separate signed-state store. */
+/** `state` is a single-purpose signed token naming the athlete (see jwt.ts, signStravaState):
+ * Strava's redirect back is a plain browser GET, so it's how the callback knows who connected. */
 export function buildAuthorizeUrl(state: string): string {
   if (!env.stravaClientId) {
     throw new StravaError("Strava integration is not configured on this server", 503);
@@ -56,7 +54,7 @@ export function buildAuthorizeUrl(state: string): string {
 
 export function athleteIdFromState(state: string): string {
   try {
-    return verifyAccessToken(state).sub;
+    return verifyStravaState(state).sub;
   } catch {
     throw new StravaError("Strava connect link expired -- try connecting again", 400);
   }

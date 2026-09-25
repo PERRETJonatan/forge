@@ -1,19 +1,18 @@
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { signupAndLogin } from "./helpers.js";
 import { prisma } from "../src/db.js";
-import { signAccessToken } from "../src/auth/jwt.js";
+import { signStravaState, verifyAccessToken, verifyStravaState } from "../src/auth/jwt.js";
 import { env } from "../src/env.js";
 import type { StravaActivityDto, StravaClient, StravaTokenRefresh, StravaTokens } from "../src/strava/strava-client.js";
 import { setStravaClientForTesting } from "../src/strava/strava.service.js";
 
 const app = createApp();
 
-async function signup(email: string) {
-  const res = await request(app)
-    .post("/auth/signup")
-    .send({ email, password: "correct-horse-battery-staple", name: "Test Athlete" });
-  return res.body.accessToken as string;
+/** The OAuth state the connect-url endpoint would have issued this athlete. */
+function stateFor(token: string): string {
+  return signStravaState(verifyAccessToken(token).sub);
 }
 
 function auth(token: string) {
@@ -66,7 +65,7 @@ let token: string;
 beforeEach(async () => {
   fakeClient = new FakeStravaClient();
   setStravaClientForTesting(fakeClient);
-  token = await signup("athlete@example.com");
+  token = await signupAndLogin("athlete@example.com");
 });
 
 afterEach(() => {
@@ -97,12 +96,14 @@ describe("GET /strava/connect-url", () => {
     env.stravaClientId = originalClientId;
   });
 
-  it("returns a Strava authorize URL carrying the access token as state", async () => {
+  it("returns a Strava authorize URL whose state names the athlete without being their access token", async () => {
     const res = await request(app).get("/strava/connect-url").set(auth(token));
     expect(res.status).toBe(200);
     const url = new URL(res.body.url);
     expect(url.hostname).toBe("www.strava.com");
-    expect(url.searchParams.get("state")).toBe(token);
+    const state = url.searchParams.get("state")!;
+    expect(state).not.toBe(token);
+    expect(verifyStravaState(state).sub).toBe(verifyAccessToken(token).sub);
     expect(url.searchParams.get("scope")).toBe("activity:read_all");
   });
 
@@ -115,7 +116,7 @@ describe("GET /strava/connect-url", () => {
 
 describe("GET /strava/callback", () => {
   it("exchanges the code and connects the athlete identified by state", async () => {
-    const res = await request(app).get("/strava/callback").query({ code: "auth-code-123", state: token });
+    const res = await request(app).get("/strava/callback").query({ code: "auth-code-123", state: stateFor(token) });
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain("strava=connected");
     expect(fakeClient.exchangeCalls).toEqual(["auth-code-123"]);
@@ -131,8 +132,14 @@ describe("GET /strava/callback", () => {
     expect(res.headers.location).toContain("strava=error");
   });
 
+  it("rejects an access token passed as state", async () => {
+    const res = await request(app).get("/strava/callback").query({ code: "auth-code-123", state: token });
+    expect(res.headers.location).toContain("strava=error");
+    expect(fakeClient.exchangeCalls).toEqual([]);
+  });
+
   it("redirects with an error when code or state is missing", async () => {
-    const res = await request(app).get("/strava/callback").query({ state: token });
+    const res = await request(app).get("/strava/callback").query({ state: stateFor(token) });
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain("strava=error");
   });
@@ -140,7 +147,7 @@ describe("GET /strava/callback", () => {
 
 describe("POST /strava/sync", () => {
   async function connect() {
-    await request(app).get("/strava/callback").query({ code: "auth-code", state: token });
+    await request(app).get("/strava/callback").query({ code: "auth-code", state: stateFor(token) });
   }
 
   it("requires a connection first", async () => {
@@ -220,7 +227,7 @@ describe("POST /strava/sync", () => {
 
   it("only syncs into the requesting athlete's own calendar", async () => {
     await connect();
-    const otherToken = await signup("other@example.com");
+    const otherToken = await signupAndLogin("other@example.com");
     fakeClient.activitiesByPage = [[activity({ id: 4 })]];
     await request(app).post("/strava/sync").set(auth(token));
 
@@ -231,7 +238,7 @@ describe("POST /strava/sync", () => {
 
 describe("DELETE /strava/connection", () => {
   it("disconnects without deleting already-synced workouts", async () => {
-    await request(app).get("/strava/callback").query({ code: "auth-code", state: token });
+    await request(app).get("/strava/callback").query({ code: "auth-code", state: stateFor(token) });
     fakeClient.activitiesByPage = [[activity({ id: 5 })]];
     await request(app).post("/strava/sync").set(auth(token));
 
@@ -248,7 +255,7 @@ describe("DELETE /strava/connection", () => {
 
 describe("POST /workouts/:id/unmatch-strava", () => {
   it("deletes a purely-synced (source: STRAVA) workout on unmatch", async () => {
-    await request(app).get("/strava/callback").query({ code: "auth-code", state: token });
+    await request(app).get("/strava/callback").query({ code: "auth-code", state: stateFor(token) });
     fakeClient.activitiesByPage = [[activity({ id: 6, type: "Run" })]];
     await request(app).post("/strava/sync").set(auth(token));
     const workouts = await request(app).get("/workouts").set(auth(token));
@@ -262,7 +269,7 @@ describe("POST /workouts/:id/unmatch-strava", () => {
   });
 
   it("clears actual data (keeps the workout) when unmatching a planned workout", async () => {
-    await request(app).get("/strava/callback").query({ code: "auth-code", state: token });
+    await request(app).get("/strava/callback").query({ code: "auth-code", state: stateFor(token) });
     await request(app).post("/workouts").set(auth(token)).send({ discipline: "BIKE", date: "2026-09-21" });
     fakeClient.activitiesByPage = [[activity({ id: 7, start_date: "2026-09-21T07:00:00Z" })]];
     await request(app).post("/strava/sync").set(auth(token));

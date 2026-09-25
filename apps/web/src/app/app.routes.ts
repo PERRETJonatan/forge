@@ -1,6 +1,5 @@
 import type { Routes } from '@angular/router';
 import { LoginComponent } from './auth/login/login.component';
-import { SignupComponent } from './auth/signup/signup.component';
 import { authGuard } from './core/auth.guard';
 import { PlaceholderComponent } from './pages/placeholder/placeholder.component';
 import { ShellComponent } from './shell/shell.component';
@@ -8,7 +7,6 @@ import { ShellComponent } from './shell/shell.component';
 // Feature pages load on first visit rather than in the initial bundle.
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
-  { path: 'signup', component: SignupComponent },
   {
     path: '',
     component: ShellComponent,

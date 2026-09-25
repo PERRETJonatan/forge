@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { asyncHandler } from "../asyncHandler.js";
+import { signStravaState } from "../auth/jwt.js";
 import { requireAuth } from "../auth/middleware.js";
 import { env } from "../env.js";
 import * as stravaService from "./strava.service.js";
@@ -27,12 +28,8 @@ stravaRouter.get(
   "/connect-url",
   requireAuth,
   asyncHandler(async (req, res) => {
-    // The access token that authenticated this request is reused as OAuth `state`, since
-    // Strava's callback is a plain browser redirect with no Authorization header -- see
-    // strava.service.ts, buildAuthorizeUrl.
-    const accessToken = req.headers.authorization!.slice("Bearer ".length);
     try {
-      res.status(200).json({ url: stravaService.buildAuthorizeUrl(accessToken) });
+      res.status(200).json({ url: stravaService.buildAuthorizeUrl(signStravaState(req.athleteId!)) });
     } catch (err) {
       handleStravaError(err, res);
     }

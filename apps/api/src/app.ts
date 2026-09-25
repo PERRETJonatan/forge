@@ -8,6 +8,7 @@ import { fitnessRouter } from "./fitness/fitness.routes.js";
 import { healthRouter } from "./health/health.routes.js";
 import { planGeneratorRouter } from "./plan-generator/plan-generator.routes.js";
 import { planImportRouter } from "./plan-imports/plan-import.routes.js";
+import { apiLimiter } from "./rate-limit.js";
 import { raceTargetRouter } from "./race-target/race-target.routes.js";
 import { stravaRouter } from "./strava/strava.routes.js";
 import { thresholdsRouter } from "./thresholds/thresholds.routes.js";
@@ -17,11 +18,16 @@ import { workoutRouter } from "./workouts/workout.routes.js";
 export function createApp(): Express {
   const app = express();
 
+  // Read the client IP from X-Forwarded-For, through exactly as many proxies as we run.
+  app.set("trust proxy", env.trustProxy);
+
   app.use(helmet());
   app.use(cors({ origin: env.webOrigin, credentials: true }));
-  app.use(express.json());
+  app.use(express.json({ limit: "100kb" }));
 
+  // Before the limiter, so uptime checks never get throttled.
   app.use("/health", healthRouter);
+  app.use(apiLimiter);
   app.use("/auth", authRouter);
   app.use("/workouts", workoutRouter);
   app.use("/plan-imports", planImportRouter);

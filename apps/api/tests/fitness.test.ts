@@ -1,16 +1,10 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { signupAndLogin } from "./helpers.js";
 import { prisma } from "../src/db.js";
 
 const app = createApp();
-
-async function signup(email: string) {
-  const res = await request(app)
-    .post("/auth/signup")
-    .send({ email, password: "correct-horse-battery-staple", name: "Test Athlete" });
-  return res.body.accessToken as string;
-}
 
 function auth(token: string) {
   return { Authorization: `Bearer ${token}` };
@@ -29,7 +23,7 @@ function dashboard(token: string, query: Record<string, string>) {
 let token: string;
 
 beforeEach(async () => {
-  token = await signup("athlete@example.com");
+  token = await signupAndLogin("athlete@example.com");
   await request(app).patch("/me/thresholds").set(auth(token)).send({ ftpWatts: 250 });
 });
 
@@ -157,7 +151,7 @@ describe("GET /fitness/dashboard", () => {
 
   it("doesn't leak one athlete's workouts into another's dashboard", async () => {
     await createWorkout(token, { discipline: "BIKE", date: "2026-09-01", completed: true, actualDurationSec: 3600 });
-    const otherToken = await signup("other@example.com");
+    const otherToken = await signupAndLogin("other@example.com");
 
     const res = await dashboard(otherToken, { from: "2026-09-01", to: "2026-09-01", today: "2026-09-01" });
     expect(res.body.series[0].tss).toBe(0);

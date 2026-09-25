@@ -1,62 +1,54 @@
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { createAthlete, setPassword } from "../src/auth/auth.service.js";
+import { createTestAthlete, TEST_PASSWORD } from "./helpers.js";
 
 const app = createApp();
 
-const credentials = {
-  email: "athlete@example.com",
-  password: "correct-horse-battery-staple",
-  name: "Test Athlete",
-};
+const EMAIL = "athlete@example.com";
 
-describe("POST /auth/signup", () => {
-  it("creates an account and returns tokens", async () => {
-    const res = await request(app).post("/auth/signup").send(credentials);
-    expect(res.status).toBe(201);
-    expect(res.body.athlete.email).toBe(credentials.email);
-    expect(res.body.athlete.passwordHash).toBeUndefined();
-    expect(typeof res.body.accessToken).toBe("string");
-    expect(typeof res.body.refreshToken).toBe("string");
+describe("account creation", () => {
+  it("has no public signup endpoint", async () => {
+    const res = await request(app)
+      .post("/auth/signup")
+      .send({ email: EMAIL, password: TEST_PASSWORD, name: "Test Athlete" });
+    expect(res.status).toBe(404);
   });
 
   it("rejects a duplicate email", async () => {
-    await request(app).post("/auth/signup").send(credentials);
-    const res = await request(app).post("/auth/signup").send(credentials);
-    expect(res.status).toBe(409);
+    await createAthlete(EMAIL, TEST_PASSWORD, "Test Athlete");
+    await expect(createAthlete(EMAIL, TEST_PASSWORD, "Test Athlete")).rejects.toMatchObject({ status: 409 });
   });
 
-  it("rejects an invalid payload", async () => {
-    const res = await request(app)
-      .post("/auth/signup")
-      .send({ email: "not-an-email", password: "short", name: "" });
-    expect(res.status).toBe(400);
+  it("rejects a short password", async () => {
+    await expect(createAthlete(EMAIL, "short-pass", "Test Athlete")).rejects.toMatchObject({ status: 400 });
   });
 });
 
 describe("POST /auth/login", () => {
-  it("logs in with correct credentials", async () => {
-    await request(app).post("/auth/signup").send(credentials);
-    const res = await request(app)
-      .post("/auth/login")
-      .send({ email: credentials.email, password: credentials.password });
+  it("logs in with correct credentials, without exposing the password hash", async () => {
+    await createAthlete(EMAIL, TEST_PASSWORD, "Test Athlete");
+    const res = await request(app).post("/auth/login").send({ email: EMAIL, password: TEST_PASSWORD });
     expect(res.status).toBe(200);
     expect(typeof res.body.accessToken).toBe("string");
+    expect(typeof res.body.refreshToken).toBe("string");
+    expect(res.body.athlete.email).toBe(EMAIL);
+    expect(res.body.athlete.passwordHash).toBeUndefined();
   });
 
   it("rejects the wrong password", async () => {
-    await request(app).post("/auth/signup").send(credentials);
-    const res = await request(app)
-      .post("/auth/login")
-      .send({ email: credentials.email, password: "wrong-password" });
+    await createAthlete(EMAIL, TEST_PASSWORD, "Test Athlete");
+    const res = await request(app).post("/auth/login").send({ email: EMAIL, password: "wrong-password" });
     expect(res.status).toBe(401);
   });
 
-  it("rejects an unknown email", async () => {
-    const res = await request(app)
-      .post("/auth/login")
-      .send({ email: "nobody@example.com", password: "whatever123" });
-    expect(res.status).toBe(401);
+  it("rejects an unknown email with the same error as a wrong password", async () => {
+    await createAthlete(EMAIL, TEST_PASSWORD, "Test Athlete");
+    const unknown = await request(app).post("/auth/login").send({ email: "nobody@example.com", password: "whatever123" });
+    const wrong = await request(app).post("/auth/login").send({ email: EMAIL, password: "whatever123" });
+    expect(unknown.status).toBe(401);
+    expect(unknown.body).toEqual(wrong.body);
   });
 });
 
@@ -72,41 +64,47 @@ describe("GET /auth/me", () => {
   });
 
   it("returns the athlete for a valid access token", async () => {
-    const signupRes = await request(app).post("/auth/signup").send(credentials);
-    const res = await request(app)
-      .get("/auth/me")
-      .set("Authorization", `Bearer ${signupRes.body.accessToken}`);
+    const tokens = await createTestAthlete(EMAIL);
+    const res = await request(app).get("/auth/me").set("Authorization", `Bearer ${tokens.accessToken}`);
     expect(res.status).toBe(200);
-    expect(res.body.email).toBe(credentials.email);
+    expect(res.body.email).toBe(EMAIL);
   });
 });
 
 describe("POST /auth/refresh", () => {
   it("exchanges a valid refresh token for a new pair", async () => {
-    const signupRes = await request(app).post("/auth/signup").send(credentials);
-    const res = await request(app)
-      .post("/auth/refresh")
-      .send({ refreshToken: signupRes.body.refreshToken });
+    const tokens = await createTestAthlete(EMAIL);
+    const res = await request(app).post("/auth/refresh").send({ refreshToken: tokens.refreshToken });
     expect(res.status).toBe(200);
     expect(typeof res.body.accessToken).toBe("string");
-    expect(res.body.refreshToken).not.toBe(signupRes.body.refreshToken);
+    expect(res.body.refreshToken).not.toBe(tokens.refreshToken);
   });
 
   it("rejects a refresh token that was already rotated", async () => {
-    const signupRes = await request(app).post("/auth/signup").send(credentials);
-    await request(app).post("/auth/refresh").send({ refreshToken: signupRes.body.refreshToken });
-    const res = await request(app)
-      .post("/auth/refresh")
-      .send({ refreshToken: signupRes.body.refreshToken });
+    const tokens = await createTestAthlete(EMAIL);
+    await request(app).post("/auth/refresh").send({ refreshToken: tokens.refreshToken });
+    const res = await request(app).post("/auth/refresh").send({ refreshToken: tokens.refreshToken });
     expect(res.status).toBe(401);
   });
 
   it("rejects a refresh token after logout", async () => {
-    const signupRes = await request(app).post("/auth/signup").send(credentials);
-    await request(app).post("/auth/logout").send({ refreshToken: signupRes.body.refreshToken });
-    const res = await request(app)
-      .post("/auth/refresh")
-      .send({ refreshToken: signupRes.body.refreshToken });
+    const tokens = await createTestAthlete(EMAIL);
+    await request(app).post("/auth/logout").send({ refreshToken: tokens.refreshToken });
+    const res = await request(app).post("/auth/refresh").send({ refreshToken: tokens.refreshToken });
     expect(res.status).toBe(401);
+  });
+});
+
+describe("setPassword", () => {
+  it("replaces the password and signs out every existing session", async () => {
+    const tokens = await createTestAthlete(EMAIL);
+    await setPassword(EMAIL, "a-brand-new-password");
+
+    const refreshed = await request(app).post("/auth/refresh").send({ refreshToken: tokens.refreshToken });
+    expect(refreshed.status).toBe(401);
+    const oldLogin = await request(app).post("/auth/login").send({ email: EMAIL, password: TEST_PASSWORD });
+    expect(oldLogin.status).toBe(401);
+    const newLogin = await request(app).post("/auth/login").send({ email: EMAIL, password: "a-brand-new-password" });
+    expect(newLogin.status).toBe(200);
   });
 });

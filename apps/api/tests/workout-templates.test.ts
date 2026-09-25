@@ -1,15 +1,9 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { signupAndLogin } from "./helpers.js";
 
 const app = createApp();
-
-async function signup(email: string) {
-  const res = await request(app)
-    .post("/auth/signup")
-    .send({ email, password: "correct-horse-battery-staple", name: "Test Athlete" });
-  return res.body.accessToken as string;
-}
 
 function auth(token: string) {
   return { Authorization: `Bearer ${token}` };
@@ -29,7 +23,7 @@ const STEPS = [
 ];
 
 beforeEach(async () => {
-  token = await signup("athlete@example.com");
+  token = await signupAndLogin("athlete@example.com");
 });
 
 describe("POST /workout-templates", () => {
@@ -63,7 +57,7 @@ describe("POST /workout-templates", () => {
 
 describe("GET /workout-templates", () => {
   it("only lists the requesting athlete's templates", async () => {
-    const otherToken = await signup("other@example.com");
+    const otherToken = await signupAndLogin("other@example.com");
     await request(app)
       .post("/workout-templates")
       .set(auth(token))
@@ -96,7 +90,7 @@ describe("PATCH /workout-templates/:id", () => {
   });
 
   it("404s for another athlete's template", async () => {
-    const otherToken = await signup("other@example.com");
+    const otherToken = await signupAndLogin("other@example.com");
     const created = await request(app)
       .post("/workout-templates")
       .set(auth(otherToken))

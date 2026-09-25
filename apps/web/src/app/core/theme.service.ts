@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 
-/** Same key the inline script in index.html reads to apply the theme before first paint. */
+/** Same key public/theme-init.js reads to apply the theme before first paint. */
 const STORAGE_KEY = 'forge.theme';
 
 function readStored(): ThemePreference {

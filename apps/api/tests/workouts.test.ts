@@ -1,20 +1,14 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { signupAndLogin } from "./helpers.js";
 
 const app = createApp();
-
-async function signup(email: string) {
-  const res = await request(app)
-    .post("/auth/signup")
-    .send({ email, password: "correct-horse-battery-staple", name: "Test Athlete" });
-  return res.body.accessToken as string;
-}
 
 let token: string;
 
 beforeEach(async () => {
-  token = await signup("athlete@example.com");
+  token = await signupAndLogin("athlete@example.com");
 });
 
 function auth(token: string) {
@@ -64,7 +58,7 @@ describe("POST /workouts", () => {
 
 describe("GET /workouts", () => {
   it("lists only the requesting athlete's workouts", async () => {
-    const otherToken = await signup("other@example.com");
+    const otherToken = await signupAndLogin("other@example.com");
     await request(app).post("/workouts").set(auth(token)).send({ discipline: "RUN", date: "2026-09-20" });
     await request(app).post("/workouts").set(auth(otherToken)).send({ discipline: "BIKE", date: "2026-09-21" });
 
@@ -107,7 +101,7 @@ describe("GET /workouts", () => {
 
 describe("GET /workouts/:id", () => {
   it("returns 404 for another athlete's workout", async () => {
-    const otherToken = await signup("other@example.com");
+    const otherToken = await signupAndLogin("other@example.com");
     const createRes = await request(app)
       .post("/workouts")
       .set(auth(otherToken))
@@ -135,7 +129,7 @@ describe("PATCH /workouts/:id", () => {
   });
 
   it("returns 404 when updating another athlete's workout", async () => {
-    const otherToken = await signup("other@example.com");
+    const otherToken = await signupAndLogin("other@example.com");
     const createRes = await request(app)
       .post("/workouts")
       .set(auth(otherToken))
@@ -164,7 +158,7 @@ describe("DELETE /workouts/:id", () => {
   });
 
   it("returns 404 when deleting another athlete's workout", async () => {
-    const otherToken = await signup("other@example.com");
+    const otherToken = await signupAndLogin("other@example.com");
     const createRes = await request(app)
       .post("/workouts")
       .set(auth(otherToken))

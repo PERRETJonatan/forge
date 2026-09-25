@@ -20,7 +20,47 @@ npm run prisma:migrate --workspace apps/api
 npm run dev                   # runs api (port 3000) and web (port 4200)
 ```
 
-Then open http://localhost:4200 and sign up for an account.
+There's no public signup. Create your account from the command line (it prompts for the
+password), then open http://localhost:4200 and log in:
+
+```bash
+npm run athlete --workspace apps/api -- create you@example.com "Your Name"
+npm run athlete --workspace apps/api -- set-password you@example.com   # forgot it / rotate it
+```
+
+## Deploying on the internet
+
+Forge is built to face the internet directly (no SSO proxy in front). Before exposing it:
+
+- **Secrets.** Set `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` to random values
+  (`openssl rand -hex 32` each). The API image runs with `NODE_ENV=production` and refuses to
+  start with the `.env.example` placeholders or anything under 32 characters.
+- **Accounts.** Created by you, in the API container:
+  `docker exec -it <api-container> node dist/cli/athlete.js create you@example.com "Your Name"`
+  (`set-password <email>` resets a password and signs that account out everywhere).
+- **HTTPS.** Terminate TLS in front of the web container. It sends HSTS, so serve the site over
+  HTTPS only.
+- **Only the web container is public.** It serves the app and proxies `/api/` to the API; don't
+  publish the API's port or Postgres.
+- **`TRUST_PROXY`** (API env, default `1`): how many proxies sit between clients and the API.
+  The API rate-limits per client IP and reads it from `X-Forwarded-For`. With `1`, the bundled web
+  container's nginx is the only one; if you put another reverse proxy (Traefik, Caddy…) in front
+  of that, set `2`. Never set it higher than the proxies you actually run: that would let a
+  client forge its IP and dodge the limits. If it's too low, everyone shares one limit.
+- **What's in place.**
+  - Rate limits: 300 req/min per IP overall; logins 20 per 15 min per IP, plus 10 *failed* per
+    15 min per account from any IP; token refreshes 60 per 15 min per IP. They're in memory, so
+    they reset when the API restarts.
+  - Login gives the same error, in the same time, for an unknown email as for a wrong password.
+  - Passwords at least 12 characters, bcrypt-hashed; refresh tokens stored hashed and rotated on
+    every use.
+  - Strava connect uses a single-purpose, 10-minute OAuth `state`, not your access token.
+  - Web: strict Content-Security-Policy (no inline scripts), HSTS, `nosniff`, no framing,
+    `Referrer-Policy`, `Permissions-Policy`, nginx version hidden. API: helmet headers, CORS
+    limited to `WEB_ORIGIN`.
+- **Known limits.** The refresh token lives in `localStorage` (the CSP is the main guard against
+  script injection reading it; an `httpOnly` cookie would be stronger). Strava OAuth tokens are
+  stored unencrypted in Postgres.
 
 ## Testing
 
@@ -32,7 +72,7 @@ The API tests run against the same local Postgres instance as dev (see `apps/api
 
 ## Build status
 
-- Milestone 1 (skeleton + auth): signup/login/logout/refresh, JWT-protected API, authenticated app shell with placeholder pages for each feature area.
+- Milestone 1 (skeleton + auth): signup/login/logout/refresh (public signup since removed -- see Deploying), JWT-protected API, authenticated app shell with placeholder pages for each feature area.
 - Milestone 2 (core workout model + calendar): `workout` Prisma model and REST API (`/workouts`, athlete-scoped CRUD + date/discipline/completed filtering), and a calendar page with month/list views, filters, and an add/edit/delete form for manual workouts.
 - Milestone 3 (plan import): importers for TrainingPeaks-style CSV, ICS calendars, and structured `.fit`/`.tcx` workout files, normalized into the workout model with structured interval detail preserved where the source provides it; import is idempotent (re-importing overlapping dates updates rather than duplicates). Lives at Settings → Plan import (`apps/web/src/app/settings`), backed by `/plan-imports`.
   - The CSV importer matches a documented set of flexible header aliases (see `apps/api/src/plan-imports/parsers/csv.parser.ts`) rather than one exact TrainingPeaks export schema, since TrainingPeaks doesn't publish a single fixed CSV format — adjust the aliases if a real export doesn't match.

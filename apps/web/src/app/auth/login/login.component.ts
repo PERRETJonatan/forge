@@ -1,13 +1,23 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+
+function loginErrorMessage(err: unknown): string {
+  if (err instanceof HttpErrorResponse) {
+    if (err.status === 401) return 'Invalid email or password.';
+    // Rate limited: the API's message says what was limited and for how long.
+    if (err.status === 429) return typeof err.error?.error === 'string' ? err.error.error : 'Too many attempts. Try again later.';
+    if (err.status === 0) return 'Could not reach the Forge server. Check your connection and try again.';
+  }
+  return 'Something went wrong. Please try again.';
+}
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule],
   templateUrl: './login.component.html',
   styleUrl: '../auth.css',
 })
@@ -35,11 +45,7 @@ export class LoginComponent {
       await this.authService.login(this.form.getRawValue() as { email: string; password: string });
       await this.router.navigateByUrl('/calendar');
     } catch (err) {
-      this.error.set(
-        err instanceof HttpErrorResponse && err.status === 401
-          ? 'Invalid email or password.'
-          : 'Something went wrong. Please try again.',
-      );
+      this.error.set(loginErrorMessage(err));
     } finally {
       this.submitting.set(false);
     }

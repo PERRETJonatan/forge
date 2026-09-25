@@ -1,8 +1,12 @@
 import { config } from "dotenv";
 import { afterAll, beforeEach } from "vitest";
 import { prisma } from "../src/db.js";
+import { env } from "../src/env.js";
 
 config({ path: ".env" });
+
+// Tests log in far more often than any real client; rate-limit.test.ts turns limits back on.
+env.rateLimitEnabled = false;
 
 // Tests run against the same local Postgres instance as dev (milestone-1
 // simplification — see SPEC.md, local dev only for v1). Truncate between

@@ -1,16 +1,10 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { signupAndLogin } from "./helpers.js";
 import { prisma } from "../src/db.js";
 
 const app = createApp();
-
-async function signup(email: string) {
-  const res = await request(app)
-    .post("/auth/signup")
-    .send({ email, password: "correct-horse-battery-staple", name: "Test Athlete" });
-  return res.body.accessToken as string;
-}
 
 function auth(token: string) {
   return { Authorization: `Bearer ${token}` };
@@ -32,7 +26,7 @@ const body = {
 let token: string;
 
 beforeEach(async () => {
-  token = await signup("athlete@example.com");
+  token = await signupAndLogin("athlete@example.com");
   await request(app).patch("/me/race-target").set(auth(token)).send({ raceName: "70.3 Test", raceDate: "2026-12-20" });
 });
 
@@ -132,7 +126,7 @@ describe("POST /plan-generator/apply", () => {
   });
 
   it("doesn't touch another athlete's calendar", async () => {
-    const otherToken = await signup("other@example.com");
+    const otherToken = await signupAndLogin("other@example.com");
     await request(app).patch("/me/race-target").set(auth(otherToken)).send({ raceDate: "2026-12-20" });
     await request(app).post("/plan-generator/apply").set(auth(otherToken)).send(body);
 

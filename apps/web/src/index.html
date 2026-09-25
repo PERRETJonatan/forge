@@ -12,14 +12,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="env.js"></script>
-  <script>
-    // Apply the saved theme before first paint so a dark-mode reload doesn't flash light.
-    // Must match ThemeService's storage key and values.
-    try {
-      var theme = localStorage.getItem('forge.theme');
-      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-    } catch (e) {}
-  </script>
+  <!-- Applies the saved theme before first paint so a dark-mode reload doesn't flash light.
+       A file rather than inline so the Content-Security-Policy can forbid inline scripts. -->
+  <script src="theme-init.js"></script>
 </head>
 <body>
   <app-root></app-root>

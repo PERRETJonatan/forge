@@ -1,15 +1,9 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { signupAndLogin } from "./helpers.js";
 
 const app = createApp();
-
-async function signup(email: string) {
-  const res = await request(app)
-    .post("/auth/signup")
-    .send({ email, password: "correct-horse-battery-staple", name: "Test Athlete" });
-  return res.body.accessToken as string;
-}
 
 function auth(token: string) {
   return { Authorization: `Bearer ${token}` };
@@ -18,7 +12,7 @@ function auth(token: string) {
 let token: string;
 
 beforeEach(async () => {
-  token = await signup("athlete@example.com");
+  token = await signupAndLogin("athlete@example.com");
 });
 
 const ICS = `BEGIN:VCALENDAR
@@ -70,7 +64,7 @@ describe("POST /plan-imports", () => {
   });
 
   it("does not import into another athlete's calendar", async () => {
-    const otherToken = await signup("other@example.com");
+    const otherToken = await signupAndLogin("other@example.com");
     await request(app).post("/plan-imports").set(auth(token)).attach("file", Buffer.from(CSV), "plan.csv");
 
     const workouts = await request(app).get("/workouts").set(auth(otherToken));

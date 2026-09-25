@@ -1,15 +1,9 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { signupAndLogin } from "./helpers.js";
 
 const app = createApp();
-
-async function signup(email: string) {
-  const res = await request(app)
-    .post("/auth/signup")
-    .send({ email, password: "correct-horse-battery-staple", name: "Test Athlete" });
-  return res.body.accessToken as string;
-}
 
 function auth(token: string) {
   return { Authorization: `Bearer ${token}` };
@@ -18,7 +12,7 @@ function auth(token: string) {
 let token: string;
 
 beforeEach(async () => {
-  token = await signup("athlete@example.com");
+  token = await signupAndLogin("athlete@example.com");
 });
 
 describe("GET /me/thresholds", () => {
@@ -65,7 +59,7 @@ describe("PATCH /me/thresholds", () => {
   });
 
   it("doesn't leak one athlete's thresholds to another", async () => {
-    const otherToken = await signup("other@example.com");
+    const otherToken = await signupAndLogin("other@example.com");
     await request(app).patch("/me/thresholds").set(auth(token)).send({ ftpWatts: 250 });
 
     const res = await request(app).get("/me/thresholds").set(auth(otherToken));

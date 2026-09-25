@@ -4,15 +4,10 @@ import { asyncHandler } from "../asyncHandler.js";
 import { prisma } from "../db.js";
 import * as authService from "./auth.service.js";
 import { AuthError } from "./auth.service.js";
+import { loginAccountLimiter, loginIpLimiter, refreshLimiter } from "../rate-limit.js";
 import { requireAuth } from "./middleware.js";
 
 export const authRouter = Router();
-
-const signupSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().min(1),
-});
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -41,28 +36,9 @@ function handleAuthError(err: unknown, res: import("express").Response): void {
 }
 
 authRouter.post(
-  "/signup",
-  asyncHandler(async (req, res) => {
-    const parsed = signupSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.flatten() });
-      return;
-    }
-    try {
-      const { athlete, tokens } = await authService.signup(
-        parsed.data.email,
-        parsed.data.password,
-        parsed.data.name,
-      );
-      res.status(201).json({ athlete: toAthleteDto(athlete), ...tokens });
-    } catch (err) {
-      handleAuthError(err, res);
-    }
-  }),
-);
-
-authRouter.post(
   "/login",
+  loginIpLimiter,
+  loginAccountLimiter,
   asyncHandler(async (req, res) => {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -83,6 +59,7 @@ authRouter.post(
 
 authRouter.post(
   "/refresh",
+  refreshLimiter,
   asyncHandler(async (req, res) => {
     const parsed = refreshSchema.safeParse(req.body);
     if (!parsed.success) {

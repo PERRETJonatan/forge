@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
-import type { Athlete, AuthTokens, LoginRequest, SignupRequest } from '@forge/shared';
+import type { Athlete, AuthTokens, LoginRequest } from '@forge/shared';
 import { catchError, firstValueFrom, of, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -21,13 +21,6 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return this.athlete() !== null;
-  }
-
-  async signup(request: SignupRequest): Promise<void> {
-    const res = await firstValueFrom(
-      this.http.post<{ athlete: Athlete } & AuthTokens>(`${environment.apiUrl}/auth/signup`, request),
-    );
-    this.applySession(res.athlete, res.accessToken, res.refreshToken);
   }
 
   async login(request: LoginRequest): Promise<void> {

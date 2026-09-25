@@ -100,8 +100,3 @@ button:disabled {
   text-align: center;
 }
 
-.auth-switch a {
-  color: var(--accent-teal);
-  text-decoration: none;
-  font-weight: 600;
-}

@@ -3,7 +3,7 @@ import { inject } from '@angular/core';
 import { catchError, from, switchMap, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 
-const UNAUTHENTICATED_PATHS = ['/auth/login', '/auth/signup', '/auth/refresh'];
+const UNAUTHENTICATED_PATHS = ['/auth/login', '/auth/refresh'];
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
