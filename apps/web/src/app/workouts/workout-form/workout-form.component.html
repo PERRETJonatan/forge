@@ -38,6 +38,13 @@
       </fieldset>
     }
 
+    @if (workout?.stravaActivityId) {
+      <div class="strava-banner">
+        <span>Actual data matched from a synced Strava activity.</span>
+        <button type="button" class="text-btn" (click)="unmatchStrava.emit()">Unmatch</button>
+      </div>
+    }
+
     <fieldset>
       <legend>Planned</legend>
       <div class="row">

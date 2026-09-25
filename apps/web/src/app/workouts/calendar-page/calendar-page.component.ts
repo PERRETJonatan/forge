@@ -143,4 +143,16 @@ export class CalendarPageComponent {
       this.error.set('Could not delete the workout.');
     }
   }
+
+  async unmatchStrava(): Promise<void> {
+    const editing = this.editingWorkout();
+    if (!editing) return;
+    try {
+      await this.workoutService.unmatchStrava(editing.id);
+      this.closeForm();
+      await this.loadMonth();
+    } catch {
+      this.error.set('Could not unmatch this Strava activity.');
+    }
+  }
 }

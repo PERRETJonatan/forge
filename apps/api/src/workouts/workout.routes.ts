@@ -3,9 +3,12 @@ import { Router } from "express";
 import { z } from "zod";
 import { asyncHandler } from "../asyncHandler.js";
 import { requireAuth } from "../auth/middleware.js";
+import * as stravaService from "../strava/strava.service.js";
+import { StravaError } from "../strava/strava.service.js";
 import { workoutStepsSchema } from "./workout-step.schema.js";
 import * as workoutService from "./workout.service.js";
 import { WorkoutError } from "./workout.service.js";
+import type { WorkoutWithStrava } from "./workout.service.js";
 
 export const workoutRouter = Router();
 
@@ -41,7 +44,7 @@ const listQuerySchema = z.object({
     .transform((v) => (v === undefined ? undefined : v === "true")),
 });
 
-export function toWorkoutDto(w: Workout) {
+export function toWorkoutDto(w: Workout | WorkoutWithStrava) {
   return {
     id: w.id,
     discipline: w.discipline,
@@ -58,6 +61,7 @@ export function toWorkoutDto(w: Workout) {
     structuredIntervals: w.structuredIntervals,
     completed: w.completed,
     planImportId: w.planImportId,
+    stravaActivityId: "stravaActivity" in w ? (w.stravaActivity?.id ?? null) : null,
     createdAt: w.createdAt.toISOString(),
     updatedAt: w.updatedAt.toISOString(),
   };
@@ -134,6 +138,22 @@ workoutRouter.delete(
       res.status(204).send();
     } catch (err) {
       handleWorkoutError(err, res);
+    }
+  }),
+);
+
+workoutRouter.post(
+  "/:id/unmatch-strava",
+  asyncHandler(async (req, res) => {
+    try {
+      await stravaService.unmatchWorkout(req.athleteId!, req.params.id);
+      res.status(204).send();
+    } catch (err) {
+      if (err instanceof StravaError) {
+        res.status(err.status).json({ error: err.message });
+        return;
+      }
+      throw err;
     }
   }),
 );

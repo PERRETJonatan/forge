@@ -2,10 +2,12 @@ import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import type { PlanImport } from '@forge/shared';
+import { ActivatedRoute } from '@angular/router';
+import type { PlanImport, StravaStatus } from '@forge/shared';
 import { CalendarFeedService } from '../calendar-feed/calendar-feed.service';
 import { PlanImportService } from '../plan-import/plan-import.service';
 import { formatPace, parsePace } from '../shared/pace';
+import { StravaService } from '../strava/strava.service';
 import { ThresholdsService } from '../thresholds/thresholds.service';
 
 const DATELESS_EXTENSIONS = new Set(['fit', 'tcx']);
@@ -25,7 +27,14 @@ export class SettingsPageComponent {
   private planImportService = inject(PlanImportService);
   private calendarFeedService = inject(CalendarFeedService);
   private thresholdsService = inject(ThresholdsService);
+  private stravaService = inject(StravaService);
+  private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
+
+  readonly stravaStatus = signal<StravaStatus | null>(null);
+  readonly stravaBusy = signal(false);
+  readonly stravaError = signal<string | null>(null);
+  readonly stravaSyncMessage = signal<string | null>(null);
 
   readonly thresholdsForm = this.fb.group({
     ftpWatts: [null as number | null],
@@ -58,6 +67,66 @@ export class SettingsPageComponent {
     void this.loadHistory();
     void this.loadFeedStatus();
     void this.loadThresholds();
+    void this.loadStravaStatus();
+
+    const stravaParam = this.route.snapshot.queryParamMap.get('strava');
+    if (stravaParam === 'connected') {
+      this.stravaSyncMessage.set('Connected to Strava.');
+    } else if (stravaParam === 'error') {
+      this.stravaError.set('Could not connect to Strava. Try again.');
+    }
+  }
+
+  private async loadStravaStatus(): Promise<void> {
+    try {
+      this.stravaStatus.set(await this.stravaService.status());
+    } catch {
+      // The connect/sync buttons will surface any real error.
+    }
+  }
+
+  async connectStrava(): Promise<void> {
+    this.stravaBusy.set(true);
+    this.stravaError.set(null);
+    try {
+      window.location.href = await this.stravaService.connectUrl();
+    } catch {
+      this.stravaError.set('Could not start the Strava connection. Try again.');
+      this.stravaBusy.set(false);
+    }
+  }
+
+  async syncStrava(): Promise<void> {
+    this.stravaBusy.set(true);
+    this.stravaError.set(null);
+    this.stravaSyncMessage.set(null);
+    try {
+      const result = await this.stravaService.sync();
+      this.stravaSyncMessage.set(
+        `Synced ${result.fetched} activit${result.fetched === 1 ? 'y' : 'ies'}: ${result.matchedExisting} matched to planned workouts, ${result.createdNew} added new.`,
+      );
+      await this.loadStravaStatus();
+    } catch {
+      this.stravaError.set('Could not sync with Strava. Try again.');
+    } finally {
+      this.stravaBusy.set(false);
+    }
+  }
+
+  async disconnectStrava(): Promise<void> {
+    if (!confirm("Disconnect Strava? Already-synced workouts stay on your calendar, but syncing won't run again until you reconnect.")) {
+      return;
+    }
+    this.stravaBusy.set(true);
+    this.stravaError.set(null);
+    try {
+      await this.stravaService.disconnect();
+      this.stravaStatus.set({ connected: false, stravaAthleteId: null, lastSyncAt: null });
+    } catch {
+      this.stravaError.set('Could not disconnect Strava. Try again.');
+    } finally {
+      this.stravaBusy.set(false);
+    }
   }
 
   private async loadThresholds(): Promise<void> {

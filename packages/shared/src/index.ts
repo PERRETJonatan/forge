@@ -74,6 +74,8 @@ export interface Workout {
   structuredIntervals: WorkoutStep[] | null;
   completed: boolean;
   planImportId: string | null;
+  /** Id of the matched StravaActivity, if any -- lets the UI offer "unmatch". */
+  stravaActivityId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -153,6 +155,18 @@ export type UpdateWorkoutTemplateRequest = Partial<CreateWorkoutTemplateRequest>
 
 export interface ApplyWorkoutTemplateRequest {
   date: string;
+}
+
+export interface StravaStatus {
+  connected: boolean;
+  stravaAthleteId: string | null;
+  lastSyncAt: string | null;
+}
+
+export interface StravaSyncResult {
+  fetched: number;
+  matchedExisting: number;
+  createdNew: number;
 }
 
 export * from './tss.js';

@@ -35,4 +35,8 @@ export class WorkoutService {
   delete(id: string): Promise<void> {
     return firstValueFrom(this.http.delete<void>(`${environment.apiUrl}/workouts/${id}`));
   }
+
+  unmatchStrava(id: string): Promise<void> {
+    return firstValueFrom(this.http.post<void>(`${environment.apiUrl}/workouts/${id}/unmatch-strava`, {}));
+  }
 }

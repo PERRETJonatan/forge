@@ -44,7 +44,9 @@ export function toDate(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
-export async function listWorkouts(athleteId: string, filter: WorkoutFilter): Promise<Workout[]> {
+export type WorkoutWithStrava = Workout & { stravaActivity: { id: string } | null };
+
+export async function listWorkouts(athleteId: string, filter: WorkoutFilter): Promise<WorkoutWithStrava[]> {
   return prisma.workout.findMany({
     where: {
       athleteId,
@@ -59,12 +61,16 @@ export async function listWorkouts(athleteId: string, filter: WorkoutFilter): Pr
       ...(filter.discipline ? { discipline: filter.discipline } : {}),
       ...(filter.completed !== undefined ? { completed: filter.completed } : {}),
     },
+    include: { stravaActivity: { select: { id: true } } },
     orderBy: { date: "asc" },
   });
 }
 
-export async function getWorkout(athleteId: string, id: string): Promise<Workout> {
-  const workout = await prisma.workout.findFirst({ where: { id, athleteId } });
+export async function getWorkout(athleteId: string, id: string): Promise<WorkoutWithStrava> {
+  const workout = await prisma.workout.findFirst({
+    where: { id, athleteId },
+    include: { stravaActivity: { select: { id: true } } },
+  });
   if (!workout) {
     throw new WorkoutError("Workout not found", 404);
   }

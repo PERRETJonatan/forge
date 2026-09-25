@@ -55,5 +55,20 @@ The API tests run against the same local Postgres instance as dev (see `apps/api
   (`apps/api/src/workout-templates`). Coach-assisted drafting is deferred to the coach milestone.
   - Single value per target (no low/high range) and one level of repeat nesting are deliberate
     v1 simplifications -- see `apps/web/src/app/program-builder/program-builder-page.component.ts`.
+- Milestone 6 (Strava sync, read-only): Settings → Strava to connect (OAuth2), see last sync
+  time, "Sync now", and disconnect. Syncing fetches activities since the last sync (or all-time,
+  first sync), matches each to a same-date/discipline planned workout when one exists (filling
+  in its actual duration/distance/intensity), or creates a new `source: STRAVA` workout
+  otherwise -- either way it lands in the same calendar/list views as any other workout. A
+  wrong match can be undone from the workout edit modal ("Unmatch"). Never writes back to
+  Strava. Backed by `apps/api/src/strava`: `StravaConnection` (tokens, plaintext -- v1/local-dev
+  simplification, see schema.prisma) and `StravaActivity` (kept as its own row, distinct from
+  the workout it's matched to, so unmatching doesn't lose the synced data). The Strava HTTP
+  calls sit behind an injectable `StravaClient` interface so sync/matching/token-refresh logic
+  has full test coverage (17 tests) against a fake client, without hitting Strava's real API or
+  needing live credentials to run the test suite.
+  - Deliberately out of scope for v1: activity streams (pace/power over the activity,
+    splits/laps -- a separate, per-activity Strava endpoint) and webhook-based incremental sync
+    (polling via "Sync now" only).
 
-Remaining roadmap (placeholder pages until then): Strava sync (milestone 6), fitness dashboard (milestone 7), virtual coach (milestone 8), settings profile/Strava tabs (later milestone).
+Remaining roadmap (placeholder pages until then): fitness dashboard (milestone 7), virtual coach (milestone 8), settings profile tab (later milestone).

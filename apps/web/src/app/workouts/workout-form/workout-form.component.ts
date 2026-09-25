@@ -17,6 +17,7 @@ export class WorkoutFormComponent implements OnChanges {
   @Input() defaultDate: string | null = null;
   @Output() save = new EventEmitter<CreateWorkoutRequest>();
   @Output() delete = new EventEmitter<void>();
+  @Output() unmatchStrava = new EventEmitter<void>();
   @Output() cancel = new EventEmitter<void>();
 
   private fb = inject(FormBuilder);

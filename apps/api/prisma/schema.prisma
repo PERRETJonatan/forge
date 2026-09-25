@@ -29,6 +29,8 @@ model Athlete {
   workouts         Workout[]
   planImports      PlanImport[]
   workoutTemplates WorkoutTemplate[]
+  stravaConnection StravaConnection?
+  stravaActivities StravaActivity[]
 
   @@map("athletes")
 }
@@ -89,6 +91,10 @@ model Workout {
   planImportId String?
   planImport   PlanImport? @relation(fields: [planImportId], references: [id], onDelete: SetNull)
 
+  /// Reverse side of StravaActivity.matchedWorkoutId -- present once a synced activity has
+  /// been matched to (or created) this workout. No column here; StravaActivity owns the FK.
+  stravaActivity StravaActivity?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -144,4 +150,60 @@ model WorkoutTemplate {
 
   @@index([athleteId])
   @@map("workout_templates")
+}
+
+/// One athlete's Strava OAuth connection. Access/refresh tokens are stored in plaintext --
+/// a v1/local-dev-only simplification (see README, "Deployment target for v1: local dev
+/// only"), same spirit as this app's other local-dev shortcuts; production would encrypt
+/// these at rest.
+model StravaConnection {
+  id        String  @id @default(uuid())
+  athleteId String  @unique
+  athlete   Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  stravaAthleteId BigInt
+  accessToken     String
+  refreshToken    String
+  expiresAt       DateTime
+
+  /// Null until the first sync completes; incremental syncs fetch activities after this.
+  lastSyncAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("strava_connections")
+}
+
+/// A synced Strava activity, kept as its own row (distinct from the Workout it's matched to)
+/// so an athlete can see what was matched and unmatch it without losing the source data.
+/// Streams (pace/power over the activity, splits/laps) are out of scope for v1 -- only
+/// summary fields, same ones the dashboard's TSS calc will need in a later milestone.
+model StravaActivity {
+  id        String  @id @default(uuid())
+  athleteId String
+  athlete   Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  stravaActivityId BigInt     @unique
+  discipline       Discipline
+  name             String?
+  startDate        DateTime
+  durationSec      Int
+  distanceM        Float?
+  elevationGainM   Float?
+  avgWatts         Float?
+  avgHr            Float?
+  avgSpeedMps      Float?
+
+  /// Set once, at first sync, if a same-date/discipline planned workout without a match was
+  /// found (or a new source: STRAVA workout was created otherwise). Never re-attempted on
+  /// later syncs, so an athlete's manual "unmatch" sticks.
+  matchedWorkoutId String?  @unique
+  matchedWorkout   Workout? @relation(fields: [matchedWorkoutId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([athleteId, startDate])
+  @@map("strava_activities")
 }

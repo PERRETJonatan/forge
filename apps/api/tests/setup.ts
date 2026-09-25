@@ -10,6 +10,8 @@ config({ path: ".env" });
 beforeEach(async () => {
   await prisma.workout.deleteMany();
   await prisma.workoutTemplate.deleteMany();
+  await prisma.stravaActivity.deleteMany();
+  await prisma.stravaConnection.deleteMany();
   await prisma.planImport.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.athlete.deleteMany();

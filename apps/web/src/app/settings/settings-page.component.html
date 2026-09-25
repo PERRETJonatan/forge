@@ -1,5 +1,44 @@
 <h1>Settings</h1>
-<p class="subtitle">Profile and Strava connection land in later milestones.</p>
+<p class="subtitle">Profile lands in a later milestone.</p>
+
+<section class="panel">
+  <h2>Strava</h2>
+  <p class="hint">
+    Connect a Strava account to sync your activities in read-only: they're matched to a planned
+    workout on the same date and discipline when one exists, or added as a new completed
+    workout otherwise. Forge never writes back to Strava.
+  </p>
+
+  @if (stravaStatus(); as status) {
+    @if (status.connected) {
+      <div class="strava-status">
+        <span class="badge connected">Connected</span>
+        <span class="hint small">
+          {{ status.lastSyncAt ? 'Last synced ' + (status.lastSyncAt | date: 'medium') : 'Never synced yet' }}
+        </span>
+      </div>
+      <div class="feed-actions">
+        <button type="button" [disabled]="stravaBusy()" (click)="syncStrava()">
+          {{ stravaBusy() ? 'Syncing…' : 'Sync now' }}
+        </button>
+        <button type="button" class="secondary danger" [disabled]="stravaBusy()" (click)="disconnectStrava()">
+          Disconnect
+        </button>
+      </div>
+    } @else {
+      <button type="button" [disabled]="stravaBusy()" (click)="connectStrava()">
+        {{ stravaBusy() ? 'Connecting…' : 'Connect Strava' }}
+      </button>
+    }
+  }
+
+  @if (stravaSyncMessage()) {
+    <div class="banner success">{{ stravaSyncMessage() }}</div>
+  }
+  @if (stravaError()) {
+    <div class="banner error">{{ stravaError() }}</div>
+  }
+</section>
 
 <section class="panel">
   <h2>Thresholds &amp; zones</h2>
