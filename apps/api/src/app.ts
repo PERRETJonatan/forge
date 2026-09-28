@@ -3,6 +3,7 @@ import express, { type Express, type NextFunction, type Request, type Response }
 import helmet from "helmet";
 import { authRouter } from "./auth/auth.routes.js";
 import { calendarFeedRouter } from "./calendar-feed/calendar-feed.routes.js";
+import { coachRouter } from "./coach/coach.routes.js";
 import { env } from "./env.js";
 import { fitnessRouter } from "./fitness/fitness.routes.js";
 import { healthRouter } from "./health/health.routes.js";
@@ -38,6 +39,7 @@ export function createApp(): Express {
   app.use("/strava", stravaRouter);
   app.use("/fitness", fitnessRouter);
   app.use("/plan-generator", planGeneratorRouter);
+  app.use("/coach", coachRouter);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

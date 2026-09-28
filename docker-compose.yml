@@ -16,5 +16,18 @@ services:
       timeout: 5s
       retries: 10
 
+  # Optional, for the virtual coach: `docker compose --profile ollama up -d`, then
+  # `docker compose exec ollama ollama pull llama3.1:8b`. On a Mac, the native Ollama app is
+  # much faster (Docker can't use the GPU there) and needs nothing here.
+  ollama:
+    image: ollama/ollama
+    profiles: ["ollama"]
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - forge-ollama-models:/root/.ollama
+
 volumes:
   forge-postgres-data:
+  forge-ollama-models:

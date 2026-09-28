@@ -19,7 +19,7 @@ model Athlete {
   calendarFeedToken String? @unique
 
   /// Thresholds used everywhere a %-of-threshold target/TSS is computed (program builder,
-  /// dashboard TSS/CTL/ATL; coach context in a later milestone). All null until set.
+  /// dashboard TSS/CTL/ATL, coach context). All null until set.
   ftpWatts                 Int?
   runThresholdPaceSecPerKm Int?
   swimThresholdPaceSec100m Int?
@@ -35,6 +35,7 @@ model Athlete {
   workoutTemplates WorkoutTemplate[]
   stravaConnection StravaConnection?
   stravaActivities StravaActivity[]
+  coachMessages    CoachMessage[]
 
   @@map("athletes")
 }
@@ -213,4 +214,28 @@ model StravaActivity {
 
   @@index([athleteId, startDate])
   @@map("strava_activities")
+}
+
+enum CoachRole {
+  USER
+  ASSISTANT
+}
+
+/// One turn of an athlete's conversation with the virtual coach (see apps/api/src/coach).
+model CoachMessage {
+  id        String  @id @default(uuid())
+  athleteId String
+  athlete   Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  role    CoachRole
+  content String
+
+  /// CoachWorkoutDraft (see @forge/shared) when the coach proposed a workout in this reply.
+  /// Kept with the message so "Open in builder" still works when the history is reloaded.
+  draft Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([athleteId, createdAt])
+  @@map("coach_messages")
 }

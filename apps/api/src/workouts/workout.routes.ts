@@ -31,7 +31,12 @@ const workoutFieldsSchema = {
   completed: z.boolean().optional(),
 };
 
-const createWorkoutSchema = z.object(workoutFieldsSchema);
+const createWorkoutSchema = z.object({
+  ...workoutFieldsSchema,
+  // A coach draft the athlete reviewed in the builder and saved. Other sources are only ever
+  // set by the server (imports, Strava sync, the plan generator).
+  source: z.enum(["MANUAL", "COACH_DRAFT"]).optional(),
+});
 const updateWorkoutSchema = z.object(workoutFieldsSchema).partial();
 
 const listQuerySchema = z.object({

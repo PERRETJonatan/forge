@@ -87,9 +87,11 @@ export interface CreateWorkoutRequest {
   actualIntensity?: string | null;
   structuredIntervals?: WorkoutStep[] | null;
   completed?: boolean;
+  /** Only MANUAL (default) or COACH_DRAFT, for a coach draft the athlete reviewed and saved. */
+  source?: Extract<WorkoutSource, 'MANUAL' | 'COACH_DRAFT'>;
 }
 
-export type UpdateWorkoutRequest = Partial<CreateWorkoutRequest>;
+export type UpdateWorkoutRequest = Partial<Omit<CreateWorkoutRequest, 'source'>>;
 
 export interface WorkoutListQuery {
   from?: string;
@@ -266,6 +268,64 @@ export interface PlanPreview {
 export interface PlanApplyResult {
   created: number;
   deleted: number;
+}
+
+/**
+ * A structured workout the virtual coach proposes, in the program builder's schema. It is
+ * only ever a proposal: the athlete opens it in the builder to review, edit and save it --
+ * the coach never writes to the calendar itself.
+ */
+export interface CoachWorkoutDraft {
+  title: string;
+  discipline: Discipline;
+  /** Suggested day, if the athlete asked for one ("tomorrow", "Saturday"). */
+  date: string | null;
+  steps: WorkoutStep[];
+  durationSec: number;
+  /** Computed server-side from the steps and the athlete's thresholds, not by the model. */
+  estimatedTss: number;
+}
+
+export type CoachRole = 'USER' | 'ASSISTANT';
+
+export interface CoachMessage {
+  id: string;
+  role: CoachRole;
+  content: string;
+  draft: CoachWorkoutDraft | null;
+  createdAt: string;
+}
+
+export interface SendCoachMessageRequest {
+  content: string;
+  /** The client's calendar day, so "tomorrow" and "this week" follow the athlete's timezone. */
+  today?: string;
+}
+
+/** The athlete's message and the coach's reply, both as stored. */
+export interface SendCoachMessageResponse {
+  message: CoachMessage;
+  reply: CoachMessage;
+}
+
+export interface CoachDraftRequest {
+  /** Plain-language request, e.g. "a 90-minute sweet-spot ride for tomorrow". */
+  request: string;
+  discipline?: Discipline;
+  today?: string;
+}
+
+export interface CoachDraftResponse {
+  /** The coach's short explanation of the workout. */
+  note: string;
+  draft: CoachWorkoutDraft;
+}
+
+export interface CoachStatus {
+  model: string;
+  /** Whether the Ollama server answered and has the configured model pulled. */
+  available: boolean;
+  error: string | null;
 }
 
 export * from './tss.js';

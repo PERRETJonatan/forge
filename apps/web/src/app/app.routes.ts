@@ -1,7 +1,6 @@
 import type { Routes } from '@angular/router';
 import { LoginComponent } from './auth/login/login.component';
 import { authGuard } from './core/auth.guard';
-import { PlaceholderComponent } from './pages/placeholder/placeholder.component';
 import { ShellComponent } from './shell/shell.component';
 
 // Feature pages load on first visit rather than in the initial bundle.
@@ -29,8 +28,7 @@ export const routes: Routes = [
       },
       {
         path: 'coach',
-        component: PlaceholderComponent,
-        data: { title: 'Coach', note: 'Virtual coach chat lands in milestone 8.' },
+        loadComponent: () => import('./coach/coach-page.component').then((m) => m.CoachPageComponent),
       },
       {
         path: 'glossary',

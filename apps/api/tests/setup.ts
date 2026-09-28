@@ -12,6 +12,7 @@ env.rateLimitEnabled = false;
 // simplification — see SPEC.md, local dev only for v1). Truncate between
 // tests so each test starts from a clean slate.
 beforeEach(async () => {
+  await prisma.coachMessage.deleteMany();
   await prisma.workout.deleteMany();
   await prisma.workoutTemplate.deleteMany();
   await prisma.stravaActivity.deleteMany();

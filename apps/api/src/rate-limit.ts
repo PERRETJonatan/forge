@@ -56,3 +56,15 @@ export const refreshLimiter = limiter({
   limit: 60,
   message: "Too many session refreshes. Try again in 15 minutes.",
 });
+
+/**
+ * Coach questions per athlete: each one runs a language model, which on a local Ollama server
+ * can take the machine's full attention for tens of seconds. Keyed by athlete (it runs after
+ * requireAuth), so a shared network doesn't share the budget.
+ */
+export const coachLimiter = limiter({
+  windowMs: 60 * MINUTE,
+  limit: 60,
+  keyGenerator: (req: Request) => `athlete:${req.athleteId}`,
+  message: "You've asked the coach a lot this hour. Try again in a little while.",
+});

@@ -20,6 +20,13 @@ npm run prisma:migrate --workspace apps/api
 npm run dev                   # runs api (port 3000) and web (port 4200)
 ```
 
+The virtual coach needs an [Ollama](https://ollama.com) server with a model pulled; the rest of
+the app works without it (the Coach page just says it's offline). Install the Ollama app, then
+`ollama pull llama3.1:8b`, or pick another model with `OLLAMA_MODEL` in `apps/api/.env`. Bigger
+models give noticeably better coaching: a ~4B model answers in seconds but fumbles workout
+structure; a ~27B one (e.g. `qwen3.5:27b`) takes ~30-40 s per answer and gets it right. No Ollama
+installed? `docker compose --profile ollama up -d` runs one in Docker (CPU-only, so slow on a Mac).
+
 There's no public signup. Create your account from the command line (it prompts for the
 password), then open http://localhost:4200 and log in:
 
@@ -47,8 +54,11 @@ Forge is built to face the internet directly (no SSO proxy in front). Before exp
   container's nginx is the only one; if you put another reverse proxy (Traefik, Caddy…) in front
   of that, set `2`. Never set it higher than the proxies you actually run: that would let a
   client forge its IP and dodge the limits. If it's too low, everyone shares one limit.
+- **Coach.** Set `OLLAMA_URL` (API env) to an Ollama server the API container can reach, e.g.
+  `http://host.docker.internal:11434` for Ollama on the Docker host, and `OLLAMA_MODEL` to a model
+  pulled there. Don't expose Ollama itself to the internet: it has no authentication.
 - **What's in place.**
-  - Rate limits: 300 req/min per IP overall; logins 20 per 15 min per IP, plus 10 *failed* per
+  - Rate limits: 300 req/min per IP overall; 60 coach questions per hour per athlete; logins 20 per 15 min per IP, plus 10 *failed* per
     15 min per account from any IP; token refreshes 60 per 15 min per IP. They're in memory, so
     they reset when the API restarts.
   - Login gives the same error, in the same time, for an unknown email as for a wrong password.
@@ -150,4 +160,26 @@ The API tests run against the same local Postgres instance as dev (see `apps/api
   (`apps/web/src/app/glossary/glossary-terms.ts`). `<app-term key="…">` marks a term inline with a
   hover/focus definition linking to its entry; used in Settings, the dashboard and the builder.
 
-Remaining roadmap (placeholder pages until then): virtual coach (milestone 8), settings profile tab (later milestone); peak performances once activity streams are synced.
+- Milestone 8 (virtual coach): `/coach` chat about your training, answered by a local Ollama model
+  (`OLLAMA_URL`/`OLLAMA_MODEL`). Each question is sent with context assembled server-side on
+  the spot -- current CTL/ATL/TSB and their 7-day change and 14-day projection, weekly planned vs
+  actual TSS, the last 14 days' completed and missed workouts and the next 14 days' plan (with
+  per-workout TSS from the dashboard's model), thresholds and target race -- plus the last 20
+  turns. Conversation history is stored per athlete (`CoachMessage`) and can be cleared.
+  Workout drafting: ask for a workout and the reply carries a draft (card with steps, duration
+  and TSS) that "Open in builder" pre-fills into the single-workout builder; the builder also has
+  its own "Draft with coach" box (`POST /coach/draft`, not stored in the chat). The coach never
+  writes to the calendar: a draft is only saved when the athlete adds it from the builder, as
+  `source: COACH_DRAFT`. Backed by `apps/api/src/coach`.
+  - The model answers in JSON constrained by Ollama's structured output (`format`), in a
+    simplified workout shape (minutes, "sets" of repeat x steps, targets as % of threshold or
+    RPE) that small models fill far more reliably than the builder's own schema;
+    `coach-draft.ts` validates, clamps and converts it into `WorkoutStep`s, and duration/TSS are
+    computed server-side, never taken from the model. `think: false` keeps reasoning models from
+    spending minutes thinking before each answer.
+  - The Ollama HTTP calls sit behind an injectable `CoachLlm` interface (same pattern as
+    `StravaClient`), so the tests (18) run against a fake model, no Ollama needed.
+  - Deliberately out of scope for v1: streaming replies (a large local model takes ~30 s, shown as
+    "Coach is thinking…"), and markdown rendering (replies are asked for as plain text).
+
+Remaining roadmap: settings profile tab (later milestone); peak performances once activity streams are synced.

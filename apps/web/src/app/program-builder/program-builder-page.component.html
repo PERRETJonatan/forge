@@ -17,12 +17,35 @@
 } @else {
 <div class="layout">
   <section class="panel builder">
+    <form class="coach-row" (submit)="$event.preventDefault(); askCoach()">
+      <input
+        type="text"
+        maxlength="1000"
+        placeholder="Ask the coach to draft one, e.g. &quot;90-minute sweet-spot ride for tomorrow&quot;"
+        aria-label="Describe a workout for the coach to draft"
+        [value]="coachRequest()"
+        [disabled]="drafting()"
+        (input)="coachRequest.set($any($event.target).value)"
+      />
+      <button type="submit" class="secondary" [disabled]="!coachRequest().trim() || drafting()">
+        {{ drafting() ? 'Drafting…' : 'Draft with coach' }}
+      </button>
+    </form>
+    @if (fromCoach()) {
+      <div class="banner info">
+        @if (coachNote()) {
+          <strong>Coach:</strong> {{ coachNote() }}
+        }
+        Drafted by your coach: review and edit the steps, then add it to your calendar. Nothing is saved until you do.
+      </div>
+    }
+
     <div class="builder-header">
       <label class="discipline-field">
         Discipline
-        <select [value]="discipline()" (change)="onDisciplineChange($any($event.target).value)">
+        <select (change)="onDisciplineChange($any($event.target).value)">
           @for (d of disciplines; track d) {
-            <option [value]="d">{{ disciplineLabels[d] }}</option>
+            <option [value]="d" [selected]="d === discipline()">{{ disciplineLabels[d] }}</option>
           }
         </select>
       </label>
@@ -217,12 +240,11 @@
     <label class="field">
       <span>Target</span>
       <select
-        [value]="step.targetUnit ?? ''"
         (change)="update({ targetUnit: $any($event.target).value || undefined, targetMode: undefined, targetLow: undefined, targetHigh: undefined })"
       >
-        <option value="">None</option>
+        <option value="" [selected]="!step.targetUnit">None</option>
         @for (u of targetUnits(); track u.value) {
-          <option [value]="u.value">{{ u.label }}</option>
+          <option [value]="u.value" [selected]="u.value === step.targetUnit">{{ u.label }}</option>
         }
       </select>
     </label>
@@ -230,13 +252,12 @@
     @if (step.targetUnit) {
       <label class="field">
         <span>As</span>
-        <select
-          [value]="step.targetMode ?? 'absolute'"
-          (change)="update({ targetMode: $any($event.target).value })"
-        >
-          <option value="absolute">Absolute</option>
+        <!-- [selected] per option, not [value] on the select: the options are rendered after
+             the select, so a [value] set on a freshly loaded step (template, coach draft) is lost. -->
+        <select (change)="update({ targetMode: $any($event.target).value })">
+          <option value="absolute" [selected]="step.targetMode !== 'percent'">Absolute</option>
           @if (targetUnitFor(step)?.supportsPercent) {
-            <option value="percent">% of threshold</option>
+            <option value="percent" [selected]="step.targetMode === 'percent'">% of threshold</option>
           }
         </select>
       </label>

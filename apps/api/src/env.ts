@@ -18,6 +18,16 @@ function secret(name: string): string {
   return value;
 }
 
+function positiveInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive whole number, got "${raw}"`);
+  }
+  return value;
+}
+
 /** Number of reverse proxies in front of the API (see README, "Deploying"). */
 function trustProxyHops(): number {
   const raw = process.env.TRUST_PROXY ?? "1";
@@ -40,6 +50,11 @@ export const env = {
    * need them fail with a clear error instead of crashing the whole app at startup. */
   stravaClientId: process.env.STRAVA_CLIENT_ID ?? null,
   stravaClientSecret: process.env.STRAVA_CLIENT_SECRET ?? null,
+  /** Ollama server the virtual coach talks to, and the model it uses (must be pulled there). */
+  ollamaUrl: (process.env.OLLAMA_URL ?? "http://localhost:11434").replace(/\/+$/, ""),
+  ollamaModel: process.env.OLLAMA_MODEL ?? "llama3.1:8b",
+  /** A local model on a CPU can take a while; past this the coach reports it timed out. */
+  ollamaTimeoutMs: positiveInt("OLLAMA_TIMEOUT_MS", 120_000),
   /**
    * How many proxies sit between the client and the API, so rate limits key on the real client
    * IP from X-Forwarded-For. 1 = the bundled web container's nginx. Only count proxies you run:

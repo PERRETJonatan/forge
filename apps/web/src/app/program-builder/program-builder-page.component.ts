@@ -1,7 +1,7 @@
 import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
-import type { AthleteThresholds, Discipline, WorkoutStep, WorkoutTemplate } from '@forge/shared';
+import type { AthleteThresholds, CoachWorkoutDraft, Discipline, WorkoutStep, WorkoutTemplate } from '@forge/shared';
 import { summarizeSteps } from '@forge/shared';
 import { DISCIPLINES, DISCIPLINE_LABELS } from '../workouts/discipline';
 import { WorkoutService } from '../workouts/workout.service';
@@ -9,6 +9,9 @@ import { ThresholdsService } from '../thresholds/thresholds.service';
 import { WorkoutTemplateService } from '../workout-templates/workout-template.service';
 import { formatPace, parsePace } from '../shared/pace';
 import { TermComponent } from '../glossary/term.component';
+import { CoachDraftHandoffService } from '../coach/coach-draft-handoff.service';
+import { CoachService } from '../coach/coach.service';
+import { toDateKey } from '../workouts/date-utils';
 import { PlanGeneratorComponent } from './plan-generator/plan-generator.component';
 import { TARGET_UNITS_BY_DISCIPLINE, targetUnitConfig } from './target-units';
 
@@ -42,6 +45,7 @@ export class ProgramBuilderPageComponent {
   private workoutService = inject(WorkoutService);
   private thresholdsService = inject(ThresholdsService);
   private templateService = inject(WorkoutTemplateService);
+  private coachService = inject(CoachService);
 
   readonly mode = signal<'plan' | 'workout'>('plan');
 
@@ -67,9 +71,17 @@ export class ProgramBuilderPageComponent {
   readonly applyDates = signal<Record<string, string>>({});
   readonly applyWeeks = signal<Record<string, number>>({});
 
+  /** The steps on screen came from the coach -- saved as source COACH_DRAFT once reviewed. */
+  readonly fromCoach = signal(false);
+  readonly coachRequest = signal('');
+  readonly drafting = signal(false);
+  readonly coachNote = signal<string | null>(null);
+
   constructor() {
     void this.loadThresholds();
     void this.loadTemplates();
+    const draft = inject(CoachDraftHandoffService).take();
+    if (draft) this.loadDraft(draft);
   }
 
   private async loadThresholds(): Promise<void> {
@@ -225,6 +237,46 @@ export class ProgramBuilderPageComponent {
     this.blocks.set([]);
     this.workoutTitle.set('');
     this.templateId.set(null);
+    this.fromCoach.set(false);
+    this.coachNote.set(null);
+  }
+
+  /** Pre-fills the single-workout builder with a coach draft, for the athlete to review. */
+  private loadDraft(draft: CoachWorkoutDraft): void {
+    this.mode.set('workout');
+    this.discipline.set(draft.discipline);
+    this.blocks.set(draft.steps as (WorkoutStep | Group)[]);
+    this.workoutTitle.set(draft.title);
+    if (draft.date) this.workoutDate.set(draft.date);
+    this.templateId.set(null);
+    this.fromCoach.set(true);
+    this.savedMessage.set(null);
+    this.error.set(null);
+  }
+
+  /** Coach-assisted drafting: a plain-language request becomes steps in the builder, unsaved. */
+  async askCoach(): Promise<void> {
+    const request = this.coachRequest().trim();
+    if (!request || this.drafting()) return;
+    if (this.blocks().length > 0 && !confirm('Replace the steps you have with the coach\'s draft?')) return;
+
+    this.drafting.set(true);
+    this.error.set(null);
+    this.coachNote.set(null);
+    try {
+      const { note, draft } = await this.coachService.draft({
+        request,
+        discipline: this.discipline(),
+        today: toDateKey(new Date()),
+      });
+      this.loadDraft(draft);
+      this.coachNote.set(note || null);
+      this.coachRequest.set('');
+    } catch (err) {
+      this.error.set(this.serverError(err) ?? 'The coach could not draft this workout. Try again.');
+    } finally {
+      this.drafting.set(false);
+    }
   }
 
   async addToCalendar(): Promise<void> {
@@ -241,6 +293,7 @@ export class ProgramBuilderPageComponent {
         structuredIntervals: this.buildableSteps(),
         targetDurationSec: summary.durationSec || null,
         targetDistanceM: summary.distanceM || null,
+        source: this.fromCoach() ? 'COACH_DRAFT' : 'MANUAL',
       });
       this.savedMessage.set(`Added to your calendar on ${this.workoutDate()}.`);
       this.resetAfterSave();
@@ -278,6 +331,8 @@ export class ProgramBuilderPageComponent {
     this.blocks.set(template.steps as (WorkoutStep | Group)[]);
     this.workoutTitle.set(template.name);
     this.templateId.set(template.id);
+    this.fromCoach.set(false);
+    this.coachNote.set(null);
     this.savedMessage.set(null);
     this.error.set(null);
   }

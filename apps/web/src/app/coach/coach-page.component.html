@@ -1,0 +1,101 @@
+<div class="page">
+  <header class="header">
+    <div>
+      <h1>Coach</h1>
+      <p class="subtitle">
+        Ask about your training. The coach reads your <app-term key="ctl">fitness</app-term>, <app-term key="tsb">form</app-term>,
+        recent and planned workouts and thresholds each time you ask.
+      </p>
+    </div>
+    @if (messages().length > 0) {
+      <button type="button" class="secondary" [disabled]="!!pending()" (click)="clear()">Clear conversation</button>
+    }
+  </header>
+
+  @if (status(); as s) {
+    @if (!s.available) {
+      <div class="banner error">{{ s.error }} Everything else in Forge works without it.</div>
+    }
+  }
+
+  <div class="thread" #thread aria-live="polite">
+    @if (loading()) {
+      <p class="hint">Loading…</p>
+    } @else if (messages().length === 0 && !pending()) {
+      <div class="empty">
+        <p>Try asking:</p>
+        <div class="suggestions">
+          @for (suggestion of suggestions; track suggestion) {
+            <button type="button" class="chip" (click)="send(suggestion)">{{ suggestion }}</button>
+          }
+        </div>
+        <p class="hint">
+          Ask for a workout and the coach drafts one you can open in the builder. Nothing lands on your calendar until
+          you review and save it there.
+        </p>
+      </div>
+    }
+
+    @for (message of messages(); track message.id) {
+      <div class="message" [class.user]="message.role === 'USER'" [class.assistant]="message.role === 'ASSISTANT'">
+        <div class="bubble">{{ message.content }}</div>
+
+        @if (message.draft; as draft) {
+          <div class="draft">
+            <div class="draft-header">
+              <span class="dot" [style.background]="disciplineColors[draft.discipline]"></span>
+              <span class="draft-title">{{ draft.title }}</span>
+            </div>
+            <div class="draft-meta">
+              {{ disciplineLabels[draft.discipline] }} · {{ formatMinutes(draft.durationSec) }} ·
+              ~{{ draft.estimatedTss }} <app-term key="tss">TSS</app-term>
+              @if (draft.date) {
+                · {{ draft.date | date: 'EEE d MMM' }}
+              }
+            </div>
+            <ol class="draft-steps">
+              @for (line of describeSteps(draft.steps); track $index) {
+                <li><span class="step-label">{{ line.label }}</span> {{ line.detail }}</li>
+              }
+            </ol>
+            <button type="button" (click)="openInBuilder(draft)">Open in builder</button>
+          </div>
+        }
+
+        <span class="time">{{ message.createdAt | date: 'd MMM, HH:mm' }}</span>
+      </div>
+    }
+
+    @if (pending(); as question) {
+      <div class="message user">
+        <div class="bubble">{{ question }}</div>
+      </div>
+      <div class="message assistant">
+        <div class="bubble thinking">Coach is thinking…</div>
+      </div>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="banner error">{{ error() }}</div>
+  }
+
+  <form class="composer" (submit)="$event.preventDefault(); send()">
+    <textarea
+      #input
+      rows="2"
+      maxlength="4000"
+      placeholder="Ask your coach… (Enter to send, Shift+Enter for a new line)"
+      aria-label="Message to your coach"
+      [value]="draftText()"
+      [disabled]="loading()"
+      (input)="draftText.set($any($event.target).value)"
+      (keydown)="onKeydown($event)"
+    ></textarea>
+    <button type="submit" [disabled]="!draftText().trim() || !!pending()">Send</button>
+  </form>
+  <p class="footnote">
+    Answers come from a language model running on your Ollama server{{ status() ? ' (' + status()!.model + ')' : '' }} and
+    can be wrong. Thresholds and race live in <a routerLink="/settings">Settings</a>.
+  </p>
+</div>

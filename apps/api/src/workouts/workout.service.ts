@@ -27,6 +27,10 @@ export interface WorkoutInput {
   completed?: boolean;
 }
 
+export interface CreateWorkoutInput extends WorkoutInput {
+  source?: "MANUAL" | "COACH_DRAFT";
+}
+
 /** Prisma's Json columns need JsonNull, not plain `null`, to actually write SQL NULL. */
 function structuredIntervalsValue(steps: WorkoutStep[] | null | undefined) {
   if (steps === null) return Prisma.JsonNull;
@@ -77,11 +81,11 @@ export async function getWorkout(athleteId: string, id: string): Promise<Workout
   return workout;
 }
 
-export async function createWorkout(athleteId: string, input: WorkoutInput): Promise<Workout> {
+export async function createWorkout(athleteId: string, input: CreateWorkoutInput): Promise<Workout> {
   return prisma.workout.create({
     data: {
       athleteId,
-      source: "MANUAL",
+      source: input.source ?? "MANUAL",
       discipline: input.discipline,
       date: toDate(input.date),
       title: input.title ?? null,
