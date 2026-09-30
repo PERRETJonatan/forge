@@ -56,5 +56,13 @@ function handle(action: typeof planGeneratorService.previewPlan | typeof planGen
   });
 }
 
+planGeneratorRouter.get(
+  "/defaults",
+  asyncHandler(async (req, res) => {
+    const today = typeof req.query.today === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.today) ? req.query.today : dateKey(new Date());
+    res.status(200).json(await planGeneratorService.getDefaults(req.athleteId!, today));
+  }),
+);
+
 planGeneratorRouter.post("/preview", handle(planGeneratorService.previewPlan));
 planGeneratorRouter.post("/apply", handle(planGeneratorService.applyPlan));

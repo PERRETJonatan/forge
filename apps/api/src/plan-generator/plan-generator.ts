@@ -67,6 +67,11 @@ const SPLIT: Record<RaceDistance, { SWIM: number; BIKE: number; RUN: number }> =
   OLYMPIC: { SWIM: 0.2, BIKE: 0.42, RUN: 0.38 },
   SPRINT: { SWIM: 0.2, BIKE: 0.4, RUN: 0.4 },
 };
+/** Swim + bike share of a full plan's hours: what they'd get next to a Runna plan's running. */
+export function swimBikeShare(distance: RaceDistance): number {
+  return SPLIT[distance].SWIM + SPLIT[distance].BIKE;
+}
+
 /** Share of a week's bike time that goes to the long ride. */
 const LONG_RIDE_SHARE: Record<RaceDistance, number> = { FULL: 0.6, HALF: 0.55, OLYMPIC: 0.5, SPRINT: 0.5 };
 const LONG_RUN_SHARE = 0.5;
@@ -77,7 +82,7 @@ const LONG_RUN_CAP_H: Record<RaceDistance, number> = { FULL: 2.75, HALF: 2, OLYM
 const MAX_WEEKLY_RAMP = 1.1;
 const RECOVERY_FACTOR = 0.65;
 /** Average TSS per hour of mostly-aerobic triathlon training, to turn CTL into weekly hours. */
-const TSS_PER_HOUR = 50;
+export const TSS_PER_HOUR = 50;
 /** Gym time never takes more than this share of a week's hours -- it supports the swim/bike/run, it isn't the plan. */
 const MAX_STRENGTH_SHARE = 0.25;
 

@@ -137,6 +137,25 @@ button.primary {
   color: var(--text-muted);
 }
 
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.subsection {
+  margin: 4px 0 12px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 .form-error {
   margin: 0 0 12px 0;
   font-size: 13px;

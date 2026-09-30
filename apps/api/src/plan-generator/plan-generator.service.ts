@@ -1,10 +1,10 @@
-import type { PlanApplyResult, PlanGenerationRequest, PlanPreview } from "@forge/shared";
+import { TYPICAL_PEAK_HOURS, type PlanApplyResult, type PlanGenerationRequest, type PlanGeneratorDefaults, type PlanPreview, type RaceDistance } from "@forge/shared";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db.js";
-import { dateKey, daysBetween } from "../fitness/fitness-model.js";
+import { dateKey, daysBetween, weekStart } from "../fitness/fitness-model.js";
 import { getDashboard } from "../fitness/fitness.service.js";
 import { toDate } from "../workouts/workout.service.js";
-import { generatePlan, startingHoursFromCtl, type ExternalSession } from "./plan-generator.js";
+import { generatePlan, startingHoursFromCtl, swimBikeShare, TSS_PER_HOUR, type ExternalSession } from "./plan-generator.js";
 import type { SessionKind } from "./workout-library.js";
 
 export class PlanGeneratorError extends Error {
@@ -104,6 +104,52 @@ async function prepare(athleteId: string, request: PlanGenerationRequest, today:
     replacesCount: replaceable.length,
     keptDates: keptDates.filter((d) => d < raceDate),
   };
+}
+
+const DISTANCES: RaceDistance[] = ["SPRINT", "OLYMPIC", "HALF", "FULL"];
+
+function roundToHalf(hours: number): number {
+  return Math.round(hours * 2) / 2;
+}
+
+/**
+ * Pre-fills for the generator form, so "Peak week" is a suggestion rather than a guess:
+ * the middle of the usual range for the distance, raised to 25% above current training, and --
+ * with running from Runna -- raised so swim and bike keep their usual share on top of Runna's
+ * biggest week.
+ */
+export async function getDefaults(athleteId: string, today: string): Promise<PlanGeneratorDefaults> {
+  const athlete = await prisma.athlete.findUniqueOrThrow({ where: { id: athleteId }, select: { runnaFeedUrl: true } });
+  const { current } = await getDashboard(athleteId, { from: today, to: today, today });
+  const currentWeeklyHours = Math.round(((current.ctl * 7) / TSS_PER_HOUR) * 10) / 10;
+
+  const runna = athlete.runnaFeedUrl
+    ? await prisma.workout.findMany({
+        where: { athleteId, source: "RUNNA", completed: false, date: { gte: toDate(today) } },
+        select: { date: true, targetDurationSec: true },
+      })
+    : [];
+  const weekHours = new Map<string, number>();
+  for (const w of runna) {
+    const week = weekStart(dateKey(w.date));
+    weekHours.set(week, (weekHours.get(week) ?? 0) + (w.targetDurationSec ?? 0) / 3600);
+  }
+  const runnaPeakWeekHours = runna.length ? Math.round(Math.max(...weekHours.values()) * 10) / 10 : null;
+  const runnaPlanEnd = runna.length ? dateKey(new Date(Math.max(...runna.map((w) => w.date.getTime())))) : null;
+
+  const clamp = (h: number) => Math.min(30, Math.max(3, roundToHalf(h)));
+  const suggestedPeakHours = Object.fromEntries(
+    DISTANCES.map((d) => {
+      const [low, high] = TYPICAL_PEAK_HOURS[d];
+      const typical = (low + high) / 2;
+      const planned = clamp(Math.max(typical, currentWeeklyHours * 1.25));
+      const withRunna =
+        runnaPeakWeekHours == null ? null : clamp(Math.max(planned, runnaPeakWeekHours + typical * swimBikeShare(d)));
+      return [d, { planned, withRunna }];
+    }),
+  ) as PlanGeneratorDefaults["suggestedPeakHours"];
+
+  return { currentWeeklyHours, suggestedPeakHours, runnaPlanEnd, runnaPeakWeekHours };
 }
 
 export async function previewPlan(athleteId: string, request: PlanGenerationRequest, today: string): Promise<PlanPreview> {

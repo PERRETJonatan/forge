@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import type { PlanApplyResult, PlanGenerationRequest, PlanPreview } from '@forge/shared';
+import type { PlanApplyResult, PlanGenerationRequest, PlanGeneratorDefaults, PlanPreview } from '@forge/shared';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -10,6 +10,12 @@ type GeneratorRequest = PlanGenerationRequest & { today: string };
 @Injectable({ providedIn: 'root' })
 export class PlanGeneratorService {
   constructor(private http: HttpClient) {}
+
+  defaults(today: string): Promise<PlanGeneratorDefaults> {
+    return firstValueFrom(
+      this.http.get<PlanGeneratorDefaults>(`${environment.apiUrl}/plan-generator/defaults`, { params: { today } }),
+    );
+  }
 
   preview(request: GeneratorRequest): Promise<PlanPreview> {
     return firstValueFrom(this.http.post<PlanPreview>(`${environment.apiUrl}/plan-generator/preview`, request));

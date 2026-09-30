@@ -312,6 +312,29 @@ export interface PlanPreview {
   keptDates: string[];
 }
 
+/**
+ * Usual peak-week hours for an age-group athlete, per race distance: the range the plan
+ * generator suggests from and shows as guidance next to the "Peak week" field.
+ */
+export const TYPICAL_PEAK_HOURS: Record<RaceDistance, [number, number]> = {
+  SPRINT: [5, 8],
+  OLYMPIC: [7, 10],
+  HALF: [10, 14],
+  FULL: [13, 18],
+};
+
+/** What the plan generator's form pre-fills from: current training and the Runna plan, if any. */
+export interface PlanGeneratorDefaults {
+  /** Weekly hours the athlete's current fitness (CTL) corresponds to. */
+  currentWeeklyHours: number;
+  /** Suggested peak-week hours per race distance: planning everything, and with running from Runna. */
+  suggestedPeakHours: Record<RaceDistance, { planned: number; withRunna: number | null }>;
+  /** Last upcoming Runna workout, i.e. when the Runna plan ends; null without one. */
+  runnaPlanEnd: string | null;
+  /** Hours of the Runna plan's biggest week (runs and gym); null without a Runna plan. */
+  runnaPeakWeekHours: number | null;
+}
+
 export interface PlanApplyResult {
   created: number;
   deleted: number;

@@ -43,20 +43,6 @@
       <input type="date" [value]="startDate()" (input)="setStartDate($any($event.target).value)" />
     </label>
 
-    <label class="field">
-      <span class="field-label">Peak week</span>
-      <div class="unit-field">
-        <input
-          type="number"
-          min="3"
-          max="30"
-          step="0.5"
-          [value]="maxWeeklyHours()"
-          (input)="setMaxHours(+$any($event.target).value)"
-        />
-        <span class="unit">hours</span>
-      </div>
-    </label>
   </div>
 
   @if (runnaConnected()) {
@@ -83,14 +69,47 @@
       <span class="field-hint">
         @if (runningFromRunna()) {
           Forge plans only swim and bike, around your Runna workouts: their hours count towards
-          each week, and a swim or ride can share a day with one. Weeks your Runna plan doesn't
-          cover (before it starts, or after its race) get runs and gym sessions from the settings below.
+          each week, and a swim or ride can share a day with one.
+          @if (runnaCoversRace()) {
+            Your Runna plan runs until your race, so there's nothing to set for running or strength.
+          }
         } @else {
           Forge plans runs and gym sessions too, and leaves the days of your Runna workouts alone.
         }
       </span>
     </div>
   }
+
+  <div class="field">
+    <span class="field-label" id="peak-label">Peak week</span>
+    <div class="unit-field">
+      <input
+        type="number"
+        min="3"
+        max="30"
+        step="0.5"
+        aria-labelledby="peak-label"
+        [value]="maxWeeklyHours()"
+        (input)="setMaxHours(+$any($event.target).value)"
+      />
+      <span class="unit">hours</span>
+    </div>
+    <span class="field-hint">
+      Your biggest training week,
+      {{ runningFromRunna() ? 'your Runna runs and gym sessions included' : 'everything included' }}. The plan
+      builds up to it from what you train now{{ currentTrainingNote() }}. Typical for {{ distanceLabel() }}:
+      {{ typicalPeak()[0] }}–{{ typicalPeak()[1] }} h.
+      @if (suggestedPeak(); as suggested) {
+        @if (peakEdited() && suggested !== maxWeeklyHours()) {
+          <button type="button" class="link-button" (click)="useSuggestedPeak()">Use the suggested {{ suggested }} h</button>
+        } @else if (runningFromRunna() && defaults()?.runnaPeakWeekHours) {
+          Suggested from that range and your Runna plan's biggest week ({{ defaults()!.runnaPeakWeekHours }} h), so swim and bike keep their usual share.
+        } @else {
+          Suggested from that range and your current training.
+        }
+      }
+    </span>
+  </div>
 
   <div class="field">
     <span class="field-label">Training days</span>
@@ -118,6 +137,16 @@
         }
       </select>
     </label>
+  </div>
+
+  @if (showRunSettings()) {
+  @if (runningFromRunna()) {
+    <p class="subsection">
+      After your Runna plan ends{{ defaults()?.runnaPlanEnd ? ' on ' + defaults()!.runnaPlanEnd : '' }},
+      Forge plans running and gym sessions itself until race day:
+    </p>
+  }
+  <div class="form-grid">
     <label class="field">
       <span class="field-label">Long run on</span>
       <select [value]="longRunDay()" (change)="setLongRunDay(+$any($event.target).value)">
@@ -147,6 +176,7 @@
       It comes out of your weekly hours, not on top of them.
     </span>
   </div>
+  }
 
   @if (formError(); as problem) {
     <p class="form-error">{{ problem }}</p>

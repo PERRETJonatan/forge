@@ -1,8 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TYPICAL_PEAK_HOURS } from '@forge/shared';
 import type {
   GeneratedWorkout,
+  PlanGeneratorDefaults,
   PlanGenerationRequest,
   PlanPreview,
   RaceDistance,
@@ -56,6 +58,13 @@ function weekdayOf(date: string): number {
   return (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
 }
 
+/** Monday of the week `date` is in (weeks run Monday to Sunday, as in the generator). */
+function mondayOf(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - weekdayOf(date));
+  return d.toISOString().slice(0, 10);
+}
+
 @Component({
   selector: 'app-plan-generator',
   standalone: true,
@@ -81,6 +90,17 @@ export class PlanGeneratorComponent {
   readonly raceDistance = signal<RaceDistance>('FULL');
   readonly startDate = signal(nextMonday());
   readonly maxWeeklyHours = signal(10);
+  /** Pre-fills from the server; "Peak week" follows its suggestion until the athlete types one. */
+  readonly defaults = signal<PlanGeneratorDefaults | null>(null);
+  readonly peakEdited = signal(false);
+  readonly typicalPeak = computed(() => TYPICAL_PEAK_HOURS[this.raceDistance()]);
+  /** " (about 6 h a week, from your recent workouts)", or a plain note when there's little to go on. */
+  readonly currentTrainingNote = computed(() => {
+    const hours = this.defaults()?.currentWeeklyHours;
+    if (hours == null) return '';
+    return hours < 1 ? ' (little recent training on record yet)' : ` (about ${hours} h a week, from your recent workouts)`;
+  });
+  readonly distanceLabel = computed(() => DISTANCES.find((d) => d.value === this.raceDistance())!.label);
   readonly trainingDays = signal<Weekday[]>([1, 2, 3, 4, 5, 6]);
   readonly longRideDay = signal<Weekday>(5);
   readonly longRunDay = signal<Weekday>(6);
@@ -94,6 +114,21 @@ export class PlanGeneratorComponent {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly applied = signal<string | null>(null);
+
+  /**
+   * Whether Runna's plan reaches the race week: then every week's running and gym work is
+   * Runna's, and the long-run and strength settings would change nothing.
+   */
+  readonly runnaCoversRace = computed(() => {
+    const end = this.defaults()?.runnaPlanEnd;
+    const raceDate = this.race()?.raceDate;
+    if (!end || !raceDate) return false;
+    const dayBeforeRace = new Date(Date.parse(`${raceDate}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+    return mondayOf(end) >= mondayOf(dayBeforeRace);
+  });
+
+  /** The long-run and strength settings apply to the weeks Forge plans running for. */
+  readonly showRunSettings = computed(() => !this.runningFromRunna() || !this.runnaCoversRace());
 
   readonly workoutCount = computed(() => this.preview()?.weeks.reduce((n, w) => n + w.workouts.length, 0) ?? 0);
   readonly peakHours = computed(() =>
@@ -123,6 +158,34 @@ export class PlanGeneratorComponent {
   constructor() {
     void this.loadRace();
     void this.loadRunna();
+    void this.loadDefaults();
+  }
+
+  private async loadDefaults(): Promise<void> {
+    try {
+      this.defaults.set(await this.planService.defaults(toDateKey(new Date())));
+      this.applySuggestedPeak();
+    } catch {
+      // Without them the form keeps its plain defaults; nothing else depends on them.
+    }
+  }
+
+  /** The suggested peak for the current distance and mode, or null before defaults load. */
+  suggestedPeak(): number | null {
+    const suggestion = this.defaults()?.suggestedPeakHours[this.raceDistance()];
+    if (!suggestion) return null;
+    return this.runningFromRunna() ? (suggestion.withRunna ?? suggestion.planned) : suggestion.planned;
+  }
+
+  private applySuggestedPeak(): void {
+    const peak = this.suggestedPeak();
+    if (peak != null && !this.peakEdited()) this.maxWeeklyHours.set(peak);
+  }
+
+  useSuggestedPeak(): void {
+    this.peakEdited.set(false);
+    this.applySuggestedPeak();
+    this.edited();
   }
 
   private async loadRunna(): Promise<void> {
@@ -130,6 +193,7 @@ export class PlanGeneratorComponent {
       const connected = (await this.runnaService.status()).feedUrl != null;
       this.runnaConnected.set(connected);
       this.runningFromRunna.set(connected);
+      this.applySuggestedPeak();
     } catch {
       // Without the status the option just isn't offered; the plan works as before.
     }
@@ -154,6 +218,7 @@ export class PlanGeneratorComponent {
 
   setDistance(value: RaceDistance): void {
     this.raceDistance.set(value);
+    this.applySuggestedPeak();
     this.edited();
   }
 
@@ -164,6 +229,7 @@ export class PlanGeneratorComponent {
 
   setMaxHours(value: number): void {
     this.maxWeeklyHours.set(value);
+    this.peakEdited.set(true);
     this.edited();
   }
 
@@ -186,6 +252,7 @@ export class PlanGeneratorComponent {
 
   setRunningFromRunna(value: boolean): void {
     this.runningFromRunna.set(value);
+    this.applySuggestedPeak();
     this.edited();
   }
 

@@ -78,6 +78,10 @@ athletes aren't limited to importing a plan — they can build one directly in F
   limit, and the long ride and hard rides keep off Runna's long-run and interval days. Weeks
   with no Runna workout (before its plan starts, or after its race) are planned in full.
   Regenerating replaces a previous generated plan's runs and gym sessions.
+- The generator form pre-fills "Peak week" with a suggestion (the usual range for the
+  distance, raised to 25% above current training and, with Runna, to fit its biggest week
+  plus the usual swim/bike share), and only shows the long-run/strength settings when they
+  apply -- not when the Runna plan runs until race day.
 - Coach-assisted drafting: from the program builder, the athlete can ask the virtual
   coach (see below) to draft a structured workout from a plain-language request (e.g.
   "give me a 90-minute sweet-spot ride for tomorrow") — the coach proposes steps/targets

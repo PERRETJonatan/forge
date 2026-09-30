@@ -198,3 +198,49 @@ describe("running from Runna", () => {
     expect(await prisma.workout.count({ where: { source: "RUNNA" } })).toBe(36);
   });
 });
+
+describe("GET /plan-generator/defaults", () => {
+  it("suggests the middle of the usual range when there's no training history and no Runna plan", async () => {
+    const res = await request(app).get("/plan-generator/defaults").query({ today: TODAY }).set(auth(token));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      currentWeeklyHours: 0,
+      suggestedPeakHours: {
+        SPRINT: { planned: 6.5, withRunna: null },
+        OLYMPIC: { planned: 8.5, withRunna: null },
+        HALF: { planned: 12, withRunna: null },
+        FULL: { planned: 15.5, withRunna: null },
+      },
+      runnaPlanEnd: null,
+      runnaPeakWeekHours: null,
+    });
+  });
+
+  it("with a Runna plan, reports when it ends and keeps room for swim and bike beside its biggest week", async () => {
+    // Four heavy Runna weeks of ~5.5 h: intervals 50 min + gym 65 min + long run 3 x 70 min.
+    const heavyLongRun = { ...LONG_RUN, estimatedSec: 3 * 70 * 60 };
+    setRunnaFetcherForTesting(async () =>
+      runnaFeed(
+        [0, 1, 2, 3].flatMap((week) => {
+          const day = (d: number) => new Date(Date.parse("2026-09-28T00:00:00Z") + (week * 7 + d) * 86_400_000).toISOString().slice(0, 10);
+          return [
+            { dayId: `plan_week_${week}_INTERVALS_0`, date: day(1), ...INTERVALS },
+            { dayId: `plan_week_${week}_LEGS_AND_CORE_0`, date: day(2), ...STRENGTH },
+            { dayId: `plan_week_${week}_LONG_RUN_0`, date: day(6), ...heavyLongRun },
+          ];
+        }),
+      ),
+    );
+    await request(app).put("/runna").set(auth(token)).send({ feedUrl: "https://cal.runna.com/0123456789abcdef.ics" });
+    setRunnaFetcherForTesting(null);
+
+    const res = await request(app).get("/plan-generator/defaults").query({ today: TODAY }).set(auth(token));
+    expect(res.body.runnaPlanEnd).toBe("2026-10-25");
+    expect(res.body.runnaPeakWeekHours).toBe(5.4);
+    // A sprint's usual 6.5 h can't hold 5.4 h of Runna plus a sprint's swim and bike: raised.
+    expect(res.body.suggestedPeakHours.SPRINT.withRunna).toBeGreaterThan(res.body.suggestedPeakHours.SPRINT.planned);
+    for (const d of ["SPRINT", "OLYMPIC", "HALF", "FULL"]) {
+      expect(res.body.suggestedPeakHours[d].withRunna).toBeGreaterThanOrEqual(res.body.suggestedPeakHours[d].planned);
+    }
+  });
+});
