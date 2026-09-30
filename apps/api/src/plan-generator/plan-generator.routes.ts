@@ -23,13 +23,17 @@ const requestSchema = z
     longRideDay: weekdaySchema,
     longRunDay: weekdaySchema,
     strengthSessionsPerWeek: z.union([z.literal(0), z.literal(1), z.literal(2)]).default(0),
+    runningFromRunna: z.boolean().default(false),
     // The client's own calendar day, so "can't start in the past" follows the athlete's timezone.
     today: z.string().date().optional(),
   })
-  .refine((r) => r.trainingDays.includes(r.longRideDay) && r.trainingDays.includes(r.longRunDay), {
+  // With running from Runna the long run is Runna's, so its day doesn't constrain anything.
+  .refine((r) => r.trainingDays.includes(r.longRideDay) && (r.runningFromRunna || r.trainingDays.includes(r.longRunDay)), {
     message: "The long ride and long run days must be training days",
   })
-  .refine((r) => r.longRideDay !== r.longRunDay, { message: "Put the long ride and long run on different days" });
+  .refine((r) => r.runningFromRunna || r.longRideDay !== r.longRunDay, {
+    message: "Put the long ride and long run on different days",
+  });
 
 function handle(action: typeof planGeneratorService.previewPlan | typeof planGeneratorService.applyPlan) {
   return asyncHandler(async (req, res: Response) => {

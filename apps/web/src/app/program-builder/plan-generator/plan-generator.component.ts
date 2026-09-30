@@ -13,6 +13,7 @@ import type {
 import { ColumnChartComponent, type ColumnRow, type ColumnSeries } from '../../dashboard/charts/column-chart.component';
 import { shortDate } from '../../dashboard/charts/chart-utils';
 import { RaceTargetService } from '../../race-target/race-target.service';
+import { RunnaService } from '../../runna/runna.service';
 import { toDateKey } from '../../workouts/date-utils';
 import { DISCIPLINE_COLORS, DISCIPLINE_LABELS } from '../../workouts/discipline';
 import { WorkoutStepsComponent } from '../../workouts/workout-steps/workout-steps.component';
@@ -65,6 +66,7 @@ function weekdayOf(date: string): number {
 export class PlanGeneratorComponent {
   private planService = inject(PlanGeneratorService);
   private raceTargetService = inject(RaceTargetService);
+  private runnaService = inject(RunnaService);
 
   readonly weekdays = WEEKDAYS;
   readonly distances = DISTANCES;
@@ -84,6 +86,9 @@ export class PlanGeneratorComponent {
   readonly longRunDay = signal<Weekday>(6);
   readonly strengthSessions = signal<0 | 1 | 2>(2);
   readonly strengthOptions = [0, 1, 2] as const;
+  /** Only offered once Runna is connected in Settings; on by default then. */
+  readonly runnaConnected = signal(false);
+  readonly runningFromRunna = signal(false);
 
   readonly preview = signal<PlanPreview | null>(null);
   readonly busy = signal(false);
@@ -91,17 +96,23 @@ export class PlanGeneratorComponent {
   readonly applied = signal<string | null>(null);
 
   readonly workoutCount = computed(() => this.preview()?.weeks.reduce((n, w) => n + w.workouts.length, 0) ?? 0);
-  readonly peakHours = computed(() => Math.max(0, ...(this.preview()?.weeks.map((w) => w.plannedHours) ?? [])));
+  readonly peakHours = computed(() =>
+    Math.round(Math.max(0, ...(this.preview()?.weeks.map((w) => w.plannedHours + w.runnaHours) ?? [])) * 10) / 10,
+  );
 
-  readonly hoursSeries: ColumnSeries[] = (['SWIM', 'BIKE', 'RUN', 'STRENGTH'] as const).map((d) => ({
-    key: d,
-    label: DISCIPLINE_LABELS[d],
-    color: DISCIPLINE_COLORS[d],
-  }));
+  /** Whether the preview counts Runna workouts -- they're charted and totalled alongside. */
+  readonly withRunna = computed(() => this.preview()?.weeks.some((w) => w.runnaHours > 0) ?? false);
+
+  readonly hoursSeries = computed<ColumnSeries[]>(() => [
+    ...(['SWIM', 'BIKE', 'RUN', 'STRENGTH'] as const)
+      .filter((d) => !this.withRunna() || d === 'SWIM' || d === 'BIKE')
+      .map((d) => ({ key: d, label: DISCIPLINE_LABELS[d], color: DISCIPLINE_COLORS[d] })),
+    ...(this.withRunna() ? [{ key: 'RUNNA', label: 'Runna (run & gym)', color: DISCIPLINE_COLORS.RUN }] : []),
+  ]);
 
   readonly hoursRows = computed<ColumnRow[]>(() =>
     (this.preview()?.weeks ?? []).map((w) => {
-      const values: Record<string, number> = { SWIM: 0, BIKE: 0, RUN: 0, STRENGTH: 0 };
+      const values: Record<string, number> = { SWIM: 0, BIKE: 0, RUN: 0, STRENGTH: 0, RUNNA: w.runnaHours };
       for (const workout of w.workouts) values[workout.discipline] += workout.targetDurationSec / 3600;
       return { label: shortDate(w.weekStart), values };
     }),
@@ -111,6 +122,17 @@ export class PlanGeneratorComponent {
 
   constructor() {
     void this.loadRace();
+    void this.loadRunna();
+  }
+
+  private async loadRunna(): Promise<void> {
+    try {
+      const connected = (await this.runnaService.status()).feedUrl != null;
+      this.runnaConnected.set(connected);
+      this.runningFromRunna.set(connected);
+    } catch {
+      // Without the status the option just isn't offered; the plan works as before.
+    }
   }
 
   private async loadRace(): Promise<void> {
@@ -162,6 +184,11 @@ export class PlanGeneratorComponent {
     this.edited();
   }
 
+  setRunningFromRunna(value: boolean): void {
+    this.runningFromRunna.set(value);
+    this.edited();
+  }
+
   setStrengthSessions(value: 0 | 1 | 2): void {
     this.strengthSessions.set(value);
     this.edited();
@@ -171,10 +198,15 @@ export class PlanGeneratorComponent {
   readonly formError = computed(() => {
     const days = this.trainingDays();
     if (days.length < 3) return 'Pick at least 3 training days.';
-    if (!days.includes(this.longRideDay()) || !days.includes(this.longRunDay())) {
-      return 'The long ride and long run days must be training days.';
+    if (this.runningFromRunna()) {
+      // The long run is Runna's; only the long ride's day matters here.
+      if (!days.includes(this.longRideDay())) return 'The long ride day must be a training day.';
+    } else {
+      if (!days.includes(this.longRideDay()) || !days.includes(this.longRunDay())) {
+        return 'The long ride and long run days must be training days.';
+      }
+      if (this.longRideDay() === this.longRunDay()) return 'Put the long ride and long run on different days.';
     }
-    if (this.longRideDay() === this.longRunDay()) return 'Put the long ride and long run on different days.';
     if (!(this.maxWeeklyHours() >= 3 && this.maxWeeklyHours() <= 30)) return 'Peak weekly hours must be between 3 and 30.';
     return null;
   });
@@ -188,6 +220,7 @@ export class PlanGeneratorComponent {
       longRideDay: this.longRideDay(),
       longRunDay: this.longRunDay(),
       strengthSessionsPerWeek: this.strengthSessions(),
+      runningFromRunna: this.runningFromRunna(),
       today: toDateKey(new Date()),
     };
   }

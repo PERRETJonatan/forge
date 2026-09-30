@@ -263,6 +263,12 @@ export interface PlanGenerationRequest {
   longRunDay: Weekday;
   /** Gym sessions in a normal base/build week; the generator scales this down by phase. */
   strengthSessionsPerWeek: 0 | 1 | 2;
+  /**
+   * Running and strength come from the athlete's Runna plan (see RunnaStatus): the generator
+   * plans only swim and bike, fits them around the Runna workouts and counts their hours.
+   * `longRunDay` and `strengthSessionsPerWeek` are ignored then. Defaults to false.
+   */
+  runningFromRunna?: boolean;
 }
 
 export interface GeneratedWorkout {
@@ -279,7 +285,10 @@ export interface GeneratedWeek {
   weekStart: string;
   phase: TrainingPhase;
   recovery: boolean;
+  /** Hours of the generated workouts only (see runnaHours). */
   plannedHours: number;
+  /** Hours of the athlete's Runna workouts this week, when running comes from Runna; else 0. */
+  runnaHours: number;
   plannedTss: number;
   workouts: GeneratedWorkout[];
 }

@@ -4,7 +4,8 @@ import { prisma } from "../db.js";
 import { dateKey, daysBetween } from "../fitness/fitness-model.js";
 import { getDashboard } from "../fitness/fitness.service.js";
 import { toDate } from "../workouts/workout.service.js";
-import { generatePlan, startingHoursFromCtl } from "./plan-generator.js";
+import { generatePlan, startingHoursFromCtl, type ExternalSession } from "./plan-generator.js";
+import type { SessionKind } from "./workout-library.js";
 
 export class PlanGeneratorError extends Error {
   constructor(
@@ -13,6 +14,18 @@ export class PlanGeneratorError extends Error {
   ) {
     super(message);
   }
+}
+
+/**
+ * The generated session a Runna workout stands in for, from its plan-day id
+ * ("…_plan_week_3_LONG_RUN_0"): what the generator should keep the long ride and hard rides away from.
+ */
+function runnaSessionKind(workout: { discipline: string; externalId: string | null }): SessionKind {
+  if (workout.discipline === "STRENGTH") return "STRENGTH_A";
+  const id = workout.externalId ?? "";
+  if (/_LONG_RUN_/.test(id)) return "LONG_RUN";
+  if (/_(INTERVALS|TEMPO|TIME_TRIAL|RACE|TAPER_INTERVALS|HILLS|FARTLEK)_/.test(id)) return "RUN_QUALITY";
+  return "RUN_EASY";
 }
 
 const MIN_WEEKS = 2;
@@ -42,16 +55,31 @@ async function prepare(athleteId: string, request: PlanGenerationRequest, today:
   const { current } = await getDashboard(athleteId, { from: today, to: today, today });
   const startingHours = startingHoursFromCtl(current.ctl, request.maxWeeklyHours);
 
+  const runningFromRunna = request.runningFromRunna ?? false;
+  if (runningFromRunna && !athlete.runnaFeedUrl) {
+    throw new PlanGeneratorError("Connect your Runna plan in Settings first", 400);
+  }
+
   // A previous generated plan's unfinished workouts get replaced; anything else on the
-  // calendar (hand-built, imported, or already completed) is kept, and its day left alone.
+  // calendar (hand-built, imported, or already completed) is kept, and its day left alone --
+  // except, when running comes from Runna, a day holding only upcoming Runna workouts: the
+  // generator plans around those itself.
   const existing = await prisma.workout.findMany({
     where: { athleteId, date: { gte: toDate(request.startDate) } },
-    select: { date: true, source: true, completed: true },
+    select: { date: true, source: true, completed: true, discipline: true, externalId: true, targetDurationSec: true },
   });
+  const isRunna = (w: (typeof existing)[number]) => runningFromRunna && w.source === "RUNNA" && !w.completed;
   const replaceable = existing.filter((w) => w.source === "GENERATED" && !w.completed);
   const keptDates = [
-    ...new Set(existing.filter((w) => w.source !== "GENERATED" || w.completed).map((w) => dateKey(w.date))),
+    ...new Set(
+      existing.filter((w) => (w.source !== "GENERATED" || w.completed) && !isRunna(w)).map((w) => dateKey(w.date)),
+    ),
   ].sort();
+  const runnaSessions: ExternalSession[] = existing.filter(isRunna).map((w) => ({
+    date: dateKey(w.date),
+    kind: runnaSessionKind(w),
+    durationSec: w.targetDurationSec ?? 0,
+  }));
 
   const weekPlans = generatePlan({
     startDate: request.startDate,
@@ -64,6 +92,8 @@ async function prepare(athleteId: string, request: PlanGenerationRequest, today:
     longRunDay: request.longRunDay,
     strengthSessionsPerWeek: request.strengthSessionsPerWeek,
     blockedDates: new Set(keptDates),
+    runningFromRunna,
+    runnaSessions,
   });
 
   return {

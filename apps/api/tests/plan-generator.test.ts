@@ -1,7 +1,7 @@
 import { summarizeSteps, type GeneratedWeek, type Weekday } from "@forge/shared";
 import { describe, expect, it } from "vitest";
 import { addDays } from "../src/fitness/fitness-model.js";
-import { generatePlan, planWeeks, startingHoursFromCtl, type GeneratorInput } from "../src/plan-generator/plan-generator.js";
+import { generatePlan, planWeeks, startingHoursFromCtl, type ExternalSession, type GeneratorInput } from "../src/plan-generator/plan-generator.js";
 
 const NO_THRESHOLDS = { ftpWatts: null, runThresholdPaceSecPerKm: null, swimThresholdPaceSec100m: null, thresholdHr: null };
 
@@ -18,6 +18,8 @@ function input(overrides: Partial<GeneratorInput> = {}): GeneratorInput {
     longRunDay: 6,
     strengthSessionsPerWeek: 2,
     blockedDates: new Set(),
+    runningFromRunna: false,
+    runnaSessions: [],
     ...overrides,
   };
 }
@@ -211,5 +213,86 @@ describe("startingHoursFromCtl", () => {
     expect(startingHoursFromCtl(0, 12)).toBeCloseTo(4.8);
     expect(startingHoursFromCtl(50, 12)).toBeCloseTo(7);
     expect(startingHoursFromCtl(200, 12)).toBeCloseTo(10.2);
+  });
+});
+
+describe("generatePlan with running from Runna", () => {
+  // A Runna-like week: easy run Tuesday, gym Wednesday, intervals Thursday, long run Sunday.
+  function runnaWeeks(): ExternalSession[] {
+    const sessions: ExternalSession[] = [];
+    for (let week = 0; week < 20; week++) {
+      const monday = addDays("2026-09-28", week * 7);
+      sessions.push(
+        { date: addDays(monday, 1), kind: "RUN_EASY", durationSec: 45 * 60 },
+        { date: addDays(monday, 2), kind: "STRENGTH_A", durationSec: 65 * 60 },
+        { date: addDays(monday, 3), kind: "RUN_QUALITY", durationSec: 50 * 60 },
+        { date: addDays(monday, 6), kind: "LONG_RUN", durationSec: 90 * 60 },
+      );
+    }
+    return sessions;
+  }
+  const runna = runnaWeeks();
+  const weeks = generatePlan(input({ runningFromRunna: true, runnaSessions: runna }));
+  const runnaOn = (date: string) => runna.filter((s) => s.date === date);
+
+  it("plans only swim and bike -- no runs, bricks, gym or run opener -- in the weeks Runna covers", () => {
+    const disciplines = new Set(allWorkouts(weeks).map((w) => w.discipline));
+    expect([...disciplines].sort()).toEqual(["BIKE", "SWIM"]);
+  });
+
+  it("plans runs and gym sessions itself in weeks Runna doesn't cover (its plan ended before the race)", () => {
+    const endsEarly = runna.filter((s) => s.date < "2026-12-21");
+    const plan = generatePlan(input({ runningFromRunna: true, runnaSessions: endsEarly }));
+    for (const week of plan) {
+      const covered = week.weekStart < "2026-12-21";
+      const runs = week.workouts.filter((w) => w.discipline === "RUN");
+      if (covered) {
+        expect(runs).toHaveLength(0);
+        expect(week.runnaHours).toBeGreaterThan(0);
+      } else {
+        expect(runs.length).toBeGreaterThan(0);
+        expect(week.runnaHours).toBe(0);
+      }
+    }
+    const lateBuild = plan.find((w) => w.weekStart >= "2026-12-21" && (w.phase === "BUILD" || w.phase === "PEAK") && !w.recovery);
+    expect(lateBuild?.workouts.some((w) => w.discipline === "STRENGTH")).toBe(true);
+  });
+
+  it("can put a swim or ride on a Runna day, but never more than two sessions a day in all", () => {
+    const onRunnaDays = allWorkouts(weeks).filter((w) => runnaOn(w.date).length > 0);
+    expect(onRunnaDays.length).toBeGreaterThan(0);
+    const perDay = new Map<string, number>();
+    for (const w of allWorkouts(weeks)) perDay.set(w.date, (perDay.get(w.date) ?? 0) + 1);
+    for (const [date, count] of perDay) expect(count + runnaOn(date).length).toBeLessThanOrEqual(2);
+  });
+
+  it("keeps the long ride off Runna's long run day and hard rides off its interval day", () => {
+    for (const w of allWorkouts(weeks)) {
+      const kinds = runnaOn(w.date).map((s) => s.kind);
+      if (/long ride/i.test(w.title)) expect(kinds).not.toContain("LONG_RUN");
+      if (w.estimatedTss > 0 && kinds.includes("RUN_QUALITY")) expect(w.title).not.toMatch(/sweet spot|threshold|vo2|tempo/i);
+    }
+  });
+
+  it("gives swim and bike the week's hours minus Runna's, and reports Runna's hours", () => {
+    const full = generatePlan(input());
+    const loadWeeks = weeks.filter((w) => (w.phase === "BASE" || w.phase === "BUILD") && !w.recovery).slice(1, 6);
+    for (const week of loadWeeks) {
+      expect(week.runnaHours).toBe(4.2);
+      const fullWeek = full.find((w) => w.weekStart === week.weekStart)!;
+      // Rounding to 5-minute sessions and minimum lengths make it approximate.
+      expect(week.plannedHours + week.runnaHours).toBeGreaterThan(fullWeek.plannedHours * 0.8);
+      expect(week.plannedHours + week.runnaHours).toBeLessThan(fullWeek.plannedHours * 1.25);
+    }
+    expect(generatePlan(input()).every((w) => w.runnaHours === 0)).toBe(true);
+  });
+
+  it("never squeezes swim and bike below half their usual share, however big Runna's week", () => {
+    const huge = runna.map((s) => ({ ...s, durationSec: 4 * 3600 }));
+    const squeezed = generatePlan(input({ runningFromRunna: true, runnaSessions: huge }));
+    const week = squeezed.find((w) => w.phase === "BUILD" && !w.recovery)!;
+    expect(week.plannedHours).toBeGreaterThan(0);
+    expect(week.workouts.some((w) => w.discipline === "BIKE")).toBe(true);
+    expect(week.workouts.filter((w) => w.discipline === "SWIM").length).toBeGreaterThanOrEqual(2);
   });
 });

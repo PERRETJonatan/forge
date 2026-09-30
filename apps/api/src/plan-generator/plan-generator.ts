@@ -30,6 +30,23 @@ export interface GeneratorInput {
   strengthSessionsPerWeek: 0 | 1 | 2;
   /** Dates the generator must leave alone (an existing workout the athlete keeps). */
   blockedDates: Set<string>;
+  /**
+   * Running and strength come from Runna: plan only swim and bike, around `runnaSessions`.
+   * Their days aren't blocked -- a swim or ride can share one -- and their time comes out of
+   * each week's hours.
+   */
+  runningFromRunna: boolean;
+  runnaSessions: ExternalSession[];
+}
+
+/**
+ * A workout from another plan the generator works around (Runna's), as the session it stands
+ * in for -- so a Runna long run keeps the long ride off its day, like a generated one would.
+ */
+export interface ExternalSession {
+  date: string;
+  kind: SessionKind;
+  durationSec: number;
 }
 
 export interface WeekPlan {
@@ -86,7 +103,9 @@ function roundTo5Min(sec: number): number {
 }
 
 /** Phase and hours for every week from the start date's week to race week. */
-export function planWeeks(input: Omit<GeneratorInput, "trainingDays" | "longRideDay" | "longRunDay" | "strengthSessionsPerWeek" | "blockedDates">): WeekPlan[] {
+export function planWeeks(
+  input: Pick<GeneratorInput, "startDate" | "raceDate" | "distance" | "maxWeeklyHours" | "startingHours">,
+): WeekPlan[] {
   const firstWeek = weekStart(input.startDate);
   const raceWeek = weekStart(addDays(input.raceDate, -1));
   const count = daysBetween(firstWeek, raceWeek) / 7 + 1;
@@ -190,16 +209,45 @@ function strengthSessions(week: WeekPlan, input: GeneratorInput): Session[] {
   return sessions;
 }
 
+/** The Runna sessions in a week (by date, Monday to Sunday). */
+function runnaSessionsIn(week: WeekPlan, input: GeneratorInput): ExternalSession[] {
+  const end = addDays(week.weekStart, 7);
+  return input.runnaSessions.filter((s) => s.date >= week.weekStart && s.date < end && s.date >= input.startDate);
+}
+
+/**
+ * Whether Runna covers this week's running. A week with no Runna workout at all -- before the
+ * Runna plan starts, or after its race when the triathlon is later -- gets runs and gym sessions
+ * from the generator, so no week is left without running.
+ */
+function runnaCovers(week: WeekPlan, input: GeneratorInput): boolean {
+  return input.runningFromRunna && runnaSessionsIn(week, input).length > 0;
+}
+
+/**
+ * With running from Runna, swim and bike get the week's hours minus Runna's -- but never less
+ * than half the share they'd have in a full plan, so a heavy Runna week doesn't squeeze them out.
+ */
+function swimBikeSec(week: WeekPlan, input: GeneratorInput): { swimSec: number; bikeSec: number } {
+  const split = SPLIT[input.distance];
+  const share = split.SWIM + split.BIKE;
+  const runnaSec = runnaSessionsIn(week, input).reduce((sum, s) => sum + s.durationSec, 0);
+  const budget = Math.max(week.hours * HOUR - runnaSec, week.hours * HOUR * share * 0.5);
+  return { swimSec: (budget * split.SWIM) / share, bikeSec: (budget * split.BIKE) / share };
+}
+
 /** Sessions for one normal (non-race) week, with durations, in placement-priority order. */
 function weekSessions(week: WeekPlan, input: GeneratorInput): Session[] {
   const split = SPLIT[input.distance];
   // Gym time comes out of the week's hours, not on top of them; it's placed last, so it
   // doubles up with a swim or easy session rather than taking a day from a key workout.
-  const strength = strengthSessions(week, input);
+  const covered = runnaCovers(week, input);
+  const strength = covered ? [] : strengthSessions(week, input);
   const triHours = week.hours - strength.reduce((sum, s) => sum + s.durationSec, 0) / HOUR;
-  const bikeSec = triHours * split.BIKE * HOUR;
-  const runSec = triHours * split.RUN * HOUR;
-  const swimSec = triHours * split.SWIM * HOUR;
+  const fromRunna = covered ? swimBikeSec(week, input) : null;
+  const bikeSec = fromRunna ? fromRunna.bikeSec : triHours * split.BIKE * HOUR;
+  const runSec = fromRunna ? 0 : triHours * split.RUN * HOUR;
+  const swimSec = fromRunna ? fromRunna.swimSec : triHours * split.SWIM * HOUR;
   const hardWeek = !week.recovery && (week.phase === "BUILD" || week.phase === "PEAK");
   const longDays: SessionKind[] = ["LONG_RIDE", "LONG_RUN"];
   const sessions: Session[] = [];
@@ -215,7 +263,7 @@ function weekSessions(week: WeekPlan, input: GeneratorInput): Session[] {
   }
 
   // Run: an optional brick off the long ride, a long run, a quality session, easy runs.
-  const brickSec = hardWeek && input.distance !== "SPRINT" ? Math.min(30 * MIN, Math.max(15 * MIN, runSec * 0.1)) : 0;
+  const brickSec = hardWeek && runSec > 0 && input.distance !== "SPRINT" ? Math.min(30 * MIN, Math.max(15 * MIN, runSec * 0.1)) : 0;
   let longRunSec = Math.min((runSec - brickSec) * LONG_RUN_SHARE, LONG_RUN_CAP_H[input.distance] * HOUR);
   const restRunSec = runSec - brickSec - longRunSec;
   const runQualitySec = Math.min(60 * MIN, restRunSec);
@@ -231,9 +279,10 @@ function weekSessions(week: WeekPlan, input: GeneratorInput): Session[] {
 
   sessions.push({ kind: "LONG_RIDE", durationSec: longRideSec, prefer: [input.longRideDay, 5, 6, 4, 3, 2, 1, 0] });
   if (brickSec) sessions.push({ kind: "BRICK_RUN", durationSec: brickSec, prefer: [], sameDayAs: "LONG_RIDE" });
-  sessions.push({ kind: "LONG_RUN", durationSec: longRunSec, prefer: [input.longRunDay, 6, 5, 3, 2, 4, 1, 0], avoidKinds: ["LONG_RIDE"] });
-  sessions.push({ kind: "BIKE_QUALITY", durationSec: bikeQualitySec, prefer: [1, 3, 2, 0, 4, 5, 6], avoidKinds: longDays });
-  sessions.push({ kind: "RUN_QUALITY", durationSec: runQualitySec, prefer: [3, 1, 2, 4, 0, 5, 6], avoidKinds: [...longDays, "BIKE_QUALITY"] });
+  if (runSec > 0) sessions.push({ kind: "LONG_RUN", durationSec: longRunSec, prefer: [input.longRunDay, 6, 5, 3, 2, 4, 1, 0], avoidKinds: ["LONG_RIDE"] });
+  // A hard ride and a hard run on the same day is one session too many -- Runna's included.
+  sessions.push({ kind: "BIKE_QUALITY", durationSec: bikeQualitySec, prefer: [1, 3, 2, 0, 4, 5, 6], avoidKinds: [...longDays, "RUN_QUALITY"] });
+  if (runSec > 0) sessions.push({ kind: "RUN_QUALITY", durationSec: runQualitySec, prefer: [3, 1, 2, 4, 0, 5, 6], avoidKinds: [...longDays, "BIKE_QUALITY"] });
   sessions.push({ kind: swimKinds[0], durationSec: swimEachSec, prefer: [0, 2, 4, 1, 3, 5, 6], avoidKinds: longDays });
   if (swimCount >= 2) sessions.push({ kind: swimKinds[1], durationSec: swimEachSec, prefer: [2, 4, 0, 3, 1, 6, 5], avoidKinds: [...longDays, swimKinds[0]] });
   sessions.push({ kind: "BIKE_ENDURANCE", durationSec: bikeEnduranceSec, prefer: [2, 4, 0, 3, 6, 5, 1], avoidKinds: [...longDays, "BIKE_QUALITY"] });
@@ -242,7 +291,7 @@ function weekSessions(week: WeekPlan, input: GeneratorInput): Session[] {
   }
   if (swimCount >= 3) sessions.push({ kind: swimKinds[2], durationSec: swimEachSec, prefer: [4, 5, 1, 3, 0, 2, 6], avoidKinds: [swimKinds[0], swimKinds[1]] });
 
-  // Anything still too short isn't worth a kit change -- drop it.
+  // Anything still too short isn't worth a kit change -- drop it (runs, when Runna has them, all are).
   return [
     ...sessions
       .map((s) => ({ ...s, durationSec: roundTo5Min(s.durationSec) }))
@@ -273,6 +322,14 @@ function placeSessions(week: WeekPlan, sessions: Session[], input: GeneratorInpu
   const onDay = new Map<string, SessionKind[]>();
   const dateOf = new Map<SessionKind, string>();
   const placed: { date: string; kind: SessionKind; durationSec: number }[] = [];
+  // Runna's workouts are already on their days: they count towards the two-a-day limit, keep a
+  // second run or gym session off that day, and anchor avoidKinds like a generated one would.
+  if (runnaCovers(week, input)) {
+    for (const s of runnaSessionsIn(week, input)) {
+      onDay.set(s.date, [...(onDay.get(s.date) ?? []), s.kind]);
+      if (!dateOf.has(s.kind)) dateOf.set(s.kind, s.date);
+    }
+  }
   const fits = (date: string, kind: SessionKind) => {
     const kinds = onDay.get(date) ?? [];
     return kinds.length < 2 && !kinds.some((k) => SESSION_DISCIPLINE[k] === SESSION_DISCIPLINE[kind]);
@@ -304,7 +361,8 @@ function placeSessions(week: WeekPlan, sessions: Session[], input: GeneratorInpu
 export function generatePlan(input: GeneratorInput): GeneratedWeek[] {
   return planWeeks(input).map((week) => {
     const ctx: SessionContext = { phase: week.phase, recovery: week.recovery, distance: input.distance };
-    const sessions = week.phase === "RACE" ? RACE_WEEK_SESSIONS : weekSessions(week, input);
+    const raceWeek = runnaCovers(week, input) ? RACE_WEEK_SESSIONS.filter((s) => s.kind !== "RUN_OPENER") : RACE_WEEK_SESSIONS;
+    const sessions = week.phase === "RACE" ? raceWeek : weekSessions(week, input);
     const workouts: GeneratedWorkout[] = placeSessions(week, sessions, input)
       .map(({ date, kind, durationSec }) => {
         const plan = buildSession(kind, durationSec, ctx);
@@ -327,6 +385,9 @@ export function generatePlan(input: GeneratorInput): GeneratedWeek[] {
       phase: week.phase,
       recovery: week.recovery,
       plannedHours: Math.round((totalSec / HOUR) * 10) / 10,
+      runnaHours: runnaCovers(week, input)
+        ? Math.round((runnaSessionsIn(week, input).reduce((sum, s) => sum + s.durationSec, 0) / HOUR) * 10) / 10
+        : 0,
       plannedTss: workouts.reduce((sum, w) => sum + w.estimatedTss, 0),
       workouts,
     };

@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { signupAndLogin } from "./helpers.js";
 import { prisma } from "../src/db.js";
+import { setRunnaFetcherForTesting } from "../src/runna/runna.service.js";
+import { INTERVALS, LONG_RUN, STRENGTH, runnaFeed, type FeedEvent } from "./runna-feed.js";
 
 const app = createApp();
 
@@ -134,5 +136,65 @@ describe("POST /plan-generator/apply", () => {
     const res = await request(app).post("/plan-generator/apply").set(auth(otherToken)).send(body);
     expect(res.body.deleted).toBe(res.body.created);
     expect((await workoutsBySource()).counts.GENERATED).toBeGreaterThan(0);
+  });
+});
+
+describe("running from Runna", () => {
+  // A Runna plan over the whole window (2026-09-28 .. race 2026-12-20): Tue intervals, Wed gym, Sun long run.
+  function runnaPlan(): FeedEvent[] {
+    const events: FeedEvent[] = [];
+    for (let week = 0; week < 12; week++) {
+      const monday = new Date(Date.parse("2026-09-28T00:00:00Z") + week * 7 * 86_400_000);
+      const day = (d: number) => new Date(monday.getTime() + d * 86_400_000).toISOString().slice(0, 10);
+      events.push(
+        { dayId: `plan_week_${week}_INTERVALS_0`, date: day(1), ...INTERVALS },
+        { dayId: `plan_week_${week}_LEGS_AND_CORE_0`, date: day(2), ...STRENGTH },
+        { dayId: `plan_week_${week}_LONG_RUN_0`, date: day(6), ...LONG_RUN },
+      );
+    }
+    return events;
+  }
+
+  async function connectRunna() {
+    setRunnaFetcherForTesting(async () => runnaFeed(runnaPlan()));
+    const res = await request(app).put("/runna").set(auth(token)).send({ feedUrl: "https://cal.runna.com/0123456789abcdef.ics" });
+    setRunnaFetcherForTesting(null);
+    expect(res.status).toBe(200);
+  }
+
+  it("needs Runna connected", async () => {
+    const res = await preview({ runningFromRunna: true });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/Runna/);
+  });
+
+  it("plans swim and bike around the Runna workouts instead of leaving their days out", async () => {
+    await connectRunna();
+    const res = await preview({ runningFromRunna: true, strengthSessionsPerWeek: 2 });
+    expect(res.status).toBe(200);
+    const workouts = res.body.weeks.flatMap((w: { workouts: { discipline: string }[] }) => w.workouts);
+    expect(new Set(workouts.map((w: { discipline: string }) => w.discipline))).toEqual(new Set(["SWIM", "BIKE"]));
+    expect(res.body.keptDates).toEqual([]);
+    expect(res.body.weeks[1].runnaHours).toBeGreaterThan(0);
+  });
+
+  it("doesn't need a separate long run day", async () => {
+    await connectRunna();
+    const res = await preview({ runningFromRunna: true, longRunDay: 5, longRideDay: 5 });
+    expect(res.status).toBe(200);
+  });
+
+  it("regenerating replaces the old plan's runs and gym sessions and keeps the Runna ones", async () => {
+    await apply({ strengthSessionsPerWeek: 2 });
+    const before = await prisma.workout.groupBy({ by: ["discipline"], where: { source: "GENERATED" }, _count: true });
+    expect(before.map((g) => g.discipline)).toEqual(expect.arrayContaining(["RUN", "STRENGTH"]));
+
+    await connectRunna();
+    const res = await apply({ runningFromRunna: true });
+    expect(res.status).toBe(200);
+
+    const generated = await prisma.workout.findMany({ where: { source: "GENERATED" }, select: { discipline: true } });
+    expect(new Set(generated.map((w) => w.discipline))).toEqual(new Set(["SWIM", "BIKE"]));
+    expect(await prisma.workout.count({ where: { source: "RUNNA" } })).toBe(36);
   });
 });

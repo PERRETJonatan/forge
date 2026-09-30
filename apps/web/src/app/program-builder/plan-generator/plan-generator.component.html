@@ -59,6 +59,39 @@
     </label>
   </div>
 
+  @if (runnaConnected()) {
+    <div class="field">
+      <span class="field-label">Running &amp; strength</span>
+      <div class="segmented" role="group" aria-label="Where running and strength come from">
+        <button
+          type="button"
+          [class.active]="runningFromRunna()"
+          [attr.aria-pressed]="runningFromRunna()"
+          (click)="setRunningFromRunna(true)"
+        >
+          From my Runna plan
+        </button>
+        <button
+          type="button"
+          [class.active]="!runningFromRunna()"
+          [attr.aria-pressed]="!runningFromRunna()"
+          (click)="setRunningFromRunna(false)"
+        >
+          Plan them here
+        </button>
+      </div>
+      <span class="field-hint">
+        @if (runningFromRunna()) {
+          Forge plans only swim and bike, around your Runna workouts: their hours count towards
+          each week, and a swim or ride can share a day with one. Weeks your Runna plan doesn't
+          cover (before it starts, or after its race) get runs and gym sessions from the settings below.
+        } @else {
+          Forge plans runs and gym sessions too, and leaves the days of your Runna workouts alone.
+        }
+      </span>
+    </div>
+  }
+
   <div class="field">
     <span class="field-label">Training days</span>
     <div class="days" role="group" aria-label="Training days">
@@ -142,7 +175,8 @@
         <h2>{{ plan.weeks.length }}-week plan · {{ workoutCount() }} workouts</h2>
         <p class="hint">
           Starts at {{ plan.startingHours }} h/week (from your current fitness) and peaks at
-          {{ peakHours() }} h. Percent targets follow your thresholds in Settings.
+          {{ peakHours() }} h{{ withRunna() ? ', your Runna workouts included' : '' }}. Percent targets
+          follow your thresholds in Settings.
         </p>
       </div>
       <button type="button" class="primary" [disabled]="busy()" (click)="applyPlan()">
@@ -166,7 +200,7 @@
 
     <app-column-chart
       [rows]="hoursRows()"
-      [series]="hoursSeries"
+      [series]="hoursSeries()"
       mode="stacked"
       [format]="formatHours"
       ariaLabel="Planned weekly hours by discipline."
@@ -182,7 +216,9 @@
               @if (week.recovery) {
                 <span class="phase recovery">Recovery</span>
               }
-              <span class="week-stats">{{ week.plannedHours }} h · {{ week.plannedTss }} TSS</span>
+              <span class="week-stats">
+                {{ week.plannedHours }} h{{ week.runnaHours ? ' + ' + week.runnaHours + ' h Runna' : '' }} · {{ week.plannedTss }} TSS
+              </span>
             </summary>
             <ul class="workouts">
               @for (workout of week.workouts; track trackWorkout(workout)) {

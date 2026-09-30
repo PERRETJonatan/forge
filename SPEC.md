@@ -69,6 +69,13 @@ athletes aren't limited to importing a plan — they can build one directly in F
 - Plan generator: optional 0-2 gym sessions per week -- strength-endurance in base, heavy
   in build, one maintenance session in peak, mobility/core in recovery weeks, none from the
   taper on. Gym time comes out of the week's hours (capped at 25%), not on top of them.
+- Plan generator with running from Runna (offered once Runna is connected): in every week
+  the Runna plan covers, the generator plans only swim and bike. Runna's hours come out of
+  the week's total (swim/bike never drop below half their usual share), and Runna days
+  aren't blocked: a swim or ride can share one, within the two-a-day / one-per-discipline
+  limit, and the long ride and hard rides keep off Runna's long-run and interval days. Weeks
+  with no Runna workout (before its plan starts, or after its race) are planned in full.
+  Regenerating replaces a previous generated plan's runs and gym sessions.
 - Coach-assisted drafting: from the program builder, the athlete can ask the virtual
   coach (see below) to draft a structured workout from a plain-language request (e.g.
   "give me a 90-minute sweet-spot ride for tomorrow") — the coach proposes steps/targets
