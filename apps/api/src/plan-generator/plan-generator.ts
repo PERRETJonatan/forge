@@ -26,6 +26,8 @@ export interface GeneratorInput {
   trainingDays: Weekday[];
   longRideDay: Weekday;
   longRunDay: Weekday;
+  /** Gym sessions in a normal base/build week (see strengthSessions for other weeks). */
+  strengthSessionsPerWeek: 0 | 1 | 2;
   /** Dates the generator must leave alone (an existing workout the athlete keeps). */
   blockedDates: Set<string>;
 }
@@ -59,6 +61,8 @@ const MAX_WEEKLY_RAMP = 1.1;
 const RECOVERY_FACTOR = 0.65;
 /** Average TSS per hour of mostly-aerobic triathlon training, to turn CTL into weekly hours. */
 const TSS_PER_HOUR = 50;
+/** Gym time never takes more than this share of a week's hours -- it supports the swim/bike/run, it isn't the plan. */
+const MAX_STRENGTH_SHARE = 0.25;
 
 const MIN = 60;
 const HOUR = 3600;
@@ -69,12 +73,20 @@ export function startingHoursFromCtl(ctl: number, maxWeeklyHours: number): numbe
   return Math.min(maxWeeklyHours * 0.85, Math.max(maxWeeklyHours * 0.4, fromCtl));
 }
 
+/** Every generated target is percent-of-threshold (or RPE), so thresholds don't affect an estimate. */
+const PERCENT_ONLY: AthleteThresholds = {
+  ftpWatts: null,
+  runThresholdPaceSecPerKm: null,
+  swimThresholdPaceSec100m: null,
+  thresholdHr: null,
+};
+
 function roundTo5Min(sec: number): number {
   return Math.round(sec / (5 * MIN)) * 5 * MIN;
 }
 
 /** Phase and hours for every week from the start date's week to race week. */
-export function planWeeks(input: Omit<GeneratorInput, "trainingDays" | "longRideDay" | "longRunDay" | "blockedDates">): WeekPlan[] {
+export function planWeeks(input: Omit<GeneratorInput, "trainingDays" | "longRideDay" | "longRunDay" | "strengthSessionsPerWeek" | "blockedDates">): WeekPlan[] {
   const firstWeek = weekStart(input.startDate);
   const raceWeek = weekStart(addDays(input.raceDate, -1));
   const count = daysBetween(firstWeek, raceWeek) / 7 + 1;
@@ -148,12 +160,46 @@ interface Session {
   avoidKinds?: SessionKind[];
 }
 
+/**
+ * Gym sessions for a week: the athlete's choice in base/build, one in peak and recovery weeks
+ * (maintenance, or mobility), none from the taper on -- no fresh soreness near race day. Their
+ * lengths are fixed by the workout library; sessions that would push gym time past
+ * MAX_STRENGTH_SHARE of the week are dropped.
+ */
+function strengthSessions(week: WeekPlan, input: GeneratorInput): Session[] {
+  const wanted =
+    week.phase === "TAPER" || week.phase === "RACE"
+      ? 0
+      : week.recovery || week.phase === "PEAK"
+        ? Math.min(1, input.strengthSessionsPerWeek)
+        : input.strengthSessionsPerWeek;
+  const ctx: SessionContext = { phase: week.phase, recovery: week.recovery, distance: input.distance };
+  const longDays: SessionKind[] = ["LONG_RIDE", "LONG_RUN"];
+  const sessions: Session[] = [];
+  let totalSec = 0;
+  for (const kind of (["STRENGTH_A", "STRENGTH_B"] as const).slice(0, wanted)) {
+    const durationSec = summarizeSteps(buildSession(kind, 0, ctx).steps, PERCENT_ONLY).durationSec;
+    if (totalSec + durationSec > week.hours * MAX_STRENGTH_SHARE * HOUR) break;
+    totalSec += durationSec;
+    sessions.push(
+      kind === "STRENGTH_A"
+        ? { kind, durationSec, prefer: [1, 3, 0, 2, 4, 5, 6], avoidKinds: longDays }
+        : { kind, durationSec, prefer: [3, 4, 0, 2, 1, 5, 6], avoidKinds: [...longDays, "STRENGTH_A"] },
+    );
+  }
+  return sessions;
+}
+
 /** Sessions for one normal (non-race) week, with durations, in placement-priority order. */
 function weekSessions(week: WeekPlan, input: GeneratorInput): Session[] {
   const split = SPLIT[input.distance];
-  const bikeSec = week.hours * split.BIKE * HOUR;
-  const runSec = week.hours * split.RUN * HOUR;
-  const swimSec = week.hours * split.SWIM * HOUR;
+  // Gym time comes out of the week's hours, not on top of them; it's placed last, so it
+  // doubles up with a swim or easy session rather than taking a day from a key workout.
+  const strength = strengthSessions(week, input);
+  const triHours = week.hours - strength.reduce((sum, s) => sum + s.durationSec, 0) / HOUR;
+  const bikeSec = triHours * split.BIKE * HOUR;
+  const runSec = triHours * split.RUN * HOUR;
+  const swimSec = triHours * split.SWIM * HOUR;
   const hardWeek = !week.recovery && (week.phase === "BUILD" || week.phase === "PEAK");
   const longDays: SessionKind[] = ["LONG_RIDE", "LONG_RUN"];
   const sessions: Session[] = [];
@@ -197,9 +243,12 @@ function weekSessions(week: WeekPlan, input: GeneratorInput): Session[] {
   if (swimCount >= 3) sessions.push({ kind: swimKinds[2], durationSec: swimEachSec, prefer: [4, 5, 1, 3, 0, 2, 6], avoidKinds: [swimKinds[0], swimKinds[1]] });
 
   // Anything still too short isn't worth a kit change -- drop it.
-  return sessions
-    .map((s) => ({ ...s, durationSec: roundTo5Min(s.durationSec) }))
-    .filter((s) => s.durationSec >= (s.kind === "BRICK_RUN" ? 10 * MIN : 20 * MIN));
+  return [
+    ...sessions
+      .map((s) => ({ ...s, durationSec: roundTo5Min(s.durationSec) }))
+      .filter((s) => s.durationSec >= (s.kind === "BRICK_RUN" ? 10 * MIN : 20 * MIN)),
+    ...strength,
+  ];
 }
 
 /** Openers early in race week; placeSessions keeps the day before the race free. Their
@@ -252,13 +301,6 @@ function placeSessions(week: WeekPlan, sessions: Session[], input: GeneratorInpu
   return placed;
 }
 
-const PERCENT_ONLY: AthleteThresholds = {
-  ftpWatts: null,
-  runThresholdPaceSecPerKm: null,
-  swimThresholdPaceSec100m: null,
-  thresholdHr: null,
-};
-
 export function generatePlan(input: GeneratorInput): GeneratedWeek[] {
   return planWeeks(input).map((week) => {
     const ctx: SessionContext = { phase: week.phase, recovery: week.recovery, distance: input.distance };
@@ -266,7 +308,6 @@ export function generatePlan(input: GeneratorInput): GeneratedWeek[] {
     const workouts: GeneratedWorkout[] = placeSessions(week, sessions, input)
       .map(({ date, kind, durationSec }) => {
         const plan = buildSession(kind, durationSec, ctx);
-        // Every generated target is percent-of-threshold, so thresholds don't affect the estimate.
         const summary = summarizeSteps(plan.steps, PERCENT_ONLY);
         return {
           date,

@@ -1,4 +1,4 @@
-import type { RaceDistance, TrainingPhase, WorkoutStep, WorkoutStepTargetUnit } from "@forge/shared";
+import { exerciseDurationSec, type RaceDistance, type TrainingPhase, type WorkoutStep, type WorkoutStepTargetUnit } from "@forge/shared";
 
 /**
  * Structured workouts for the plan generator. Every target is a %-of-threshold (the same
@@ -20,11 +20,13 @@ export type SessionKind =
   | "SWIM_QUALITY"
   | "SWIM_OPENER"
   | "BIKE_OPENER"
-  | "RUN_OPENER";
+  | "RUN_OPENER"
+  | "STRENGTH_A"
+  | "STRENGTH_B";
 
 type TriDiscipline = "SWIM" | "BIKE" | "RUN";
 
-export const SESSION_DISCIPLINE: Record<SessionKind, TriDiscipline> = {
+export const SESSION_DISCIPLINE: Record<SessionKind, TriDiscipline | "STRENGTH"> = {
   LONG_RIDE: "BIKE",
   BIKE_QUALITY: "BIKE",
   BIKE_ENDURANCE: "BIKE",
@@ -38,6 +40,8 @@ export const SESSION_DISCIPLINE: Record<SessionKind, TriDiscipline> = {
   SWIM_ENDURANCE: "SWIM",
   SWIM_QUALITY: "SWIM",
   SWIM_OPENER: "SWIM",
+  STRENGTH_A: "STRENGTH",
+  STRENGTH_B: "STRENGTH",
 };
 
 export interface SessionContext {
@@ -382,6 +386,116 @@ function opener(kind: "SWIM_OPENER" | "BIKE_OPENER" | "RUN_OPENER", ctx: Session
   };
 }
 
+type Exercise = [label: string, sets: number, reps: number, restSec: number, rpe: number];
+/** A timed hold (plank etc.): seconds per set instead of reps. */
+type Hold = [label: string, sets: number, holdSec: number, restSec: number, rpe: number, hold: true];
+
+function exercise(e: Exercise | Hold): WorkoutStep {
+  const [label, sets, amount, restSec, rpe, hold] = e;
+  return {
+    label,
+    sets,
+    ...(hold ? { durationSec: amount } : { reps: amount }),
+    restSec,
+    targetLow: rpe,
+    targetUnit: "rpe",
+  };
+}
+
+/** Warm-up of 8-13 min, sized so the whole session lands on a round 5 minutes. */
+function gymSession(exercises: (Exercise | Hold)[]): WorkoutStep[] {
+  const steps = exercises.map(exercise);
+  const exerciseSec = steps.reduce((sum, s) => sum + exerciseDurationSec(s), 0);
+  const totalSec = Math.ceil((exerciseSec + 8 * MIN) / (5 * MIN)) * 5 * MIN;
+  return [{ label: "Warm-up: easy cardio + mobility", durationSec: totalSec - exerciseSec, targetLow: 3, targetUnit: "rpe" }, ...steps];
+}
+
+/**
+ * Gym sessions: A is lower body + core (the legs that carry a triathlete through the run), B is
+ * pulling + trunk (swim-specific shoulders and back). Base builds strength-endurance with
+ * moderate loads, build goes heavy with low reps, peak keeps one short maintenance session.
+ * Targets are RPE rather than kg -- the generator doesn't know anyone's lifts.
+ */
+function strength(kind: "STRENGTH_A" | "STRENGTH_B", ctx: SessionContext): SessionPlan {
+  if (ctx.recovery) {
+    return {
+      title: "Mobility & core",
+      notes: "Recovery week: light bodyweight work to keep the habit without adding fatigue.",
+      steps: gymSession([
+        ["Glute bridge", 2, 12, 45, 4],
+        ["Bird dog", 2, 10, 45, 4],
+        ["Dead bug", 2, 10, 45, 4],
+        ["Side plank (each side)", 2, 30, 30, 5, true],
+        ["Band pull-apart", 2, 15, 45, 4],
+      ]),
+    };
+  }
+  if (ctx.phase === "PEAK" || ctx.phase === "TAPER" || ctx.phase === "RACE") {
+    return {
+      title: "Strength · maintenance",
+      notes: "Low volume to keep the strength you built: stop well short of failure, no new exercises.",
+      steps: gymSession([
+        ["Back squat", 2, 5, 120, 7],
+        ["Romanian deadlift", 2, 6, 90, 7],
+        ["Pull-up", 2, 6, 90, 7],
+        ["Box jump", 3, 5, 60, 6],
+        ["Plank", 2, 45, 45, 6, true],
+      ]),
+    };
+  }
+  if (ctx.phase === "BUILD") {
+    return kind === "STRENGTH_A"
+      ? {
+          title: "Strength · heavy legs",
+          notes: "Heavy, low reps with full rest: pick a load you could lift 2 more times. Lift after the day's bike or run, not before -- keep hard days hard.",
+          steps: gymSession([
+            ["Back squat", 4, 5, 150, 8],
+            ["Deadlift", 3, 5, 150, 8],
+            ["Step-up (each leg)", 3, 8, 90, 7],
+            ["Single-leg calf raise", 3, 12, 60, 7],
+            ["Hanging knee raise", 3, 10, 60, 7],
+          ]),
+        }
+      : {
+          title: "Strength · heavy pull",
+          notes: "Heavy pulling for a stronger swim catch: 2 reps in reserve on every set.",
+          steps: gymSession([
+            ["Pull-up", 4, 6, 120, 8],
+            ["Bent-over row", 4, 6, 90, 8],
+            ["Overhead press", 3, 6, 90, 7],
+            ["Face pull", 3, 12, 60, 6],
+            ["Pallof press (each side)", 3, 10, 45, 6],
+          ]),
+        };
+  }
+  // BASE: strength-endurance, moderate loads, higher reps -- learn the movements first.
+  return kind === "STRENGTH_A"
+    ? {
+        title: "Strength · legs & core",
+        notes: "Moderate loads, controlled tempo: learn the movements before they get heavy in the build.",
+        steps: gymSession([
+          ["Goblet squat", 3, 12, 60, 6],
+          ["Romanian deadlift", 3, 10, 60, 6],
+          ["Walking lunge (each leg)", 3, 10, 60, 6],
+          ["Calf raise", 3, 15, 45, 6],
+          ["Dead bug", 3, 10, 45, 5],
+          ["Side plank (each side)", 2, 30, 30, 6, true],
+        ]),
+      }
+    : {
+        title: "Strength · pull & trunk",
+        notes: "Back and shoulder work for the swim, plus anti-rotation core.",
+        steps: gymSession([
+          ["Lat pulldown", 3, 10, 60, 6],
+          ["Single-arm row", 3, 10, 60, 6],
+          ["Push-up", 3, 12, 60, 6],
+          ["Band pull-apart", 3, 15, 45, 5],
+          ["Pallof press (each side)", 3, 10, 45, 6],
+          ["Plank", 3, 45, 45, 6, true],
+        ]),
+      };
+}
+
 export function buildSession(kind: SessionKind, totalSec: number, ctx: SessionContext): SessionPlan {
   switch (kind) {
     case "LONG_RIDE":
@@ -406,5 +520,8 @@ export function buildSession(kind: SessionKind, totalSec: number, ctx: SessionCo
     case "BIKE_OPENER":
     case "RUN_OPENER":
       return opener(kind, ctx);
+    case "STRENGTH_A":
+    case "STRENGTH_B":
+      return strength(kind, ctx);
   }
 }

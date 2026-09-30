@@ -91,6 +91,7 @@
                           setLow: setGroupStepTargetLow.bind(this, blockIndex, stepIndex),
                           update: updateGroupStep.bind(this, blockIndex, stepIndex),
                           remove: block.steps.length > 1 ? removeStepFromGroup.bind(this, blockIndex, stepIndex) : null,
+                          inGroup: true,
                         }
                       "
                     />
@@ -109,6 +110,7 @@
                     setLow: setLeafTargetLow.bind(this, blockIndex),
                     update: updateLeaf.bind(this, blockIndex),
                     remove: removeBlock.bind(this, blockIndex),
+                    inGroup: false,
                   }
                 "
               />
@@ -123,12 +125,30 @@
     </ol>
 
     <div class="add-buttons">
-      <button type="button" (click)="addLeaf()">+ Add step</button>
-      <button type="button" (click)="addGroup()">+ Add repeat group</button>
+      @if (isStrength()) {
+        <button type="button" (click)="addExercise()">+ Add exercise</button>
+        <button type="button" (click)="addLeaf()">+ Add timed step</button>
+        <button type="button" (click)="addCircuit()">+ Add circuit</button>
+      } @else {
+        <button type="button" (click)="addLeaf()">+ Add step</button>
+        <button type="button" (click)="addGroup()">+ Add repeat group</button>
+      }
     </div>
+    @if (isStrength()) {
+      <p class="hint">
+        Time is estimated from sets × (reps + rest), and load from each exercise's <app-term key="rpe">RPE</app-term>.
+        A circuit repeats its exercises back to back, once per round.
+      </p>
+    }
+
+    <datalist id="exercise-names">
+      @for (name of exerciseNames; track name) {
+        <option [value]="name"></option>
+      }
+    </datalist>
 
     <div class="summary">
-      <span><strong>{{ formatDuration(summary().durationSec) }}</strong> total</span>
+      <span><strong>{{ isStrength() ? '~' : '' }}{{ formatDuration(summary().durationSec) }}</strong> total</span>
       @if (summary().distanceM > 0) {
         <span><strong>{{ formatDistance(summary().distanceM) }}</strong></span>
       }
@@ -201,7 +221,59 @@
 
 }
 
-<ng-template #stepRow let-step="step" let-setLow="setLow" let-update="update" let-remove="remove">
+<ng-template #stepRow let-step="step" let-setLow="setLow" let-update="update" let-remove="remove" let-inGroup="inGroup">
+  @if (isExercise(step)) {
+  <div class="step-row">
+    <input
+      type="text"
+      class="label-field"
+      placeholder="Exercise (e.g. Back squat)"
+      list="exercise-names"
+      [value]="step.label ?? ''"
+      (input)="update({ label: $any($event.target).value })"
+    />
+
+    @if (!inGroup || step.sets != null) {
+      <label class="field">
+        <span>Sets</span>
+        <input type="number" min="1" class="short" [value]="step.sets ?? ''" (input)="update({ sets: wholeNumber($any($event.target).value) || undefined })" />
+      </label>
+    }
+
+    <label class="field">
+      <span>Reps</span>
+      <input type="number" min="1" class="short" [value]="step.reps ?? ''" (input)="update({ reps: wholeNumber($any($event.target).value) || undefined })" />
+    </label>
+
+    <label class="field">
+      <span>Load</span>
+      <div class="unit-field">
+        <input type="number" min="0" step="0.5" [value]="step.loadKg ?? ''" placeholder="BW" (input)="update({ loadKg: loadKg($any($event.target).value) })" />
+        <span class="unit">kg</span>
+      </div>
+    </label>
+
+    <label class="field">
+      <span>Rest</span>
+      <div class="unit-field">
+        <input type="number" min="0" step="15" [value]="step.restSec ?? ''" (input)="update({ restSec: wholeNumber($any($event.target).value) ?? 0 })" />
+        <span class="unit">s</span>
+      </div>
+    </label>
+
+    <label class="field">
+      <span><app-term key="rpe">RPE</app-term></span>
+      <div class="unit-field">
+        <input type="number" min="1" max="10" [value]="step.targetUnit === 'rpe' ? step.targetLow : ''" (input)="update(rpePatch($any($event.target).value))" />
+        <span class="unit">/10</span>
+      </div>
+    </label>
+
+    @if (remove) {
+      <button type="button" class="danger remove-step" title="Remove exercise" (click)="remove()">✕</button>
+    }
+  </div>
+  } @else {
   <div class="step-row">
     <input
       type="text"
@@ -281,4 +353,5 @@
       <button type="button" class="danger remove-step" title="Remove step" (click)="remove()">✕</button>
     }
   </div>
+  }
 </ng-template>

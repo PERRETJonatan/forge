@@ -39,6 +39,11 @@ export type WorkoutStepTargetMode = 'absolute' | 'percent';
  * own duration/distance/target; a repeat group instead carries `repeat` +
  * nested `steps` (e.g. "6x (4min @ threshold, 2min easy)" is a group with
  * repeat: 6 and two leaf steps).
+ *
+ * A leaf with any of `sets`/`reps`/`loadKg`/`restSec` is a gym exercise (see isExerciseStep): `label` names the
+ * exercise, `durationSec` (if set) is the time of *one* set -- a timed hold like a plank --
+ * and the step's total time is derived from sets x (work + rest). Inside a repeat group an
+ * exercise usually omits `sets`: the group's `repeat` is the circuit's rounds.
  */
 export interface WorkoutStep {
   label?: string;
@@ -50,6 +55,11 @@ export interface WorkoutStep {
   targetMode?: WorkoutStepTargetMode;
   repeat?: number;
   steps?: WorkoutStep[];
+  sets?: number;
+  reps?: number;
+  loadKg?: number;
+  /** Rest after each set, exercise steps only. */
+  restSec?: number;
 }
 
 export interface Workout {
@@ -232,6 +242,8 @@ export interface PlanGenerationRequest {
   trainingDays: Weekday[];
   longRideDay: Weekday;
   longRunDay: Weekday;
+  /** Gym sessions in a normal base/build week; the generator scales this down by phase. */
+  strengthSessionsPerWeek: 0 | 1 | 2;
 }
 
 export interface GeneratedWorkout {

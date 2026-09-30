@@ -82,6 +82,8 @@ export class PlanGeneratorComponent {
   readonly trainingDays = signal<Weekday[]>([1, 2, 3, 4, 5, 6]);
   readonly longRideDay = signal<Weekday>(5);
   readonly longRunDay = signal<Weekday>(6);
+  readonly strengthSessions = signal<0 | 1 | 2>(2);
+  readonly strengthOptions = [0, 1, 2] as const;
 
   readonly preview = signal<PlanPreview | null>(null);
   readonly busy = signal(false);
@@ -91,7 +93,7 @@ export class PlanGeneratorComponent {
   readonly workoutCount = computed(() => this.preview()?.weeks.reduce((n, w) => n + w.workouts.length, 0) ?? 0);
   readonly peakHours = computed(() => Math.max(0, ...(this.preview()?.weeks.map((w) => w.plannedHours) ?? [])));
 
-  readonly hoursSeries: ColumnSeries[] = (['SWIM', 'BIKE', 'RUN'] as const).map((d) => ({
+  readonly hoursSeries: ColumnSeries[] = (['SWIM', 'BIKE', 'RUN', 'STRENGTH'] as const).map((d) => ({
     key: d,
     label: DISCIPLINE_LABELS[d],
     color: DISCIPLINE_COLORS[d],
@@ -99,7 +101,7 @@ export class PlanGeneratorComponent {
 
   readonly hoursRows = computed<ColumnRow[]>(() =>
     (this.preview()?.weeks ?? []).map((w) => {
-      const values: Record<string, number> = { SWIM: 0, BIKE: 0, RUN: 0 };
+      const values: Record<string, number> = { SWIM: 0, BIKE: 0, RUN: 0, STRENGTH: 0 };
       for (const workout of w.workouts) values[workout.discipline] += workout.targetDurationSec / 3600;
       return { label: shortDate(w.weekStart), values };
     }),
@@ -160,6 +162,11 @@ export class PlanGeneratorComponent {
     this.edited();
   }
 
+  setStrengthSessions(value: 0 | 1 | 2): void {
+    this.strengthSessions.set(value);
+    this.edited();
+  }
+
   /** Client-side check for the mistakes the form makes easy; the server re-validates. */
   readonly formError = computed(() => {
     const days = this.trainingDays();
@@ -180,6 +187,7 @@ export class PlanGeneratorComponent {
       trainingDays: this.trainingDays(),
       longRideDay: this.longRideDay(),
       longRunDay: this.longRunDay(),
+      strengthSessionsPerWeek: this.strengthSessions(),
       today: toDateKey(new Date()),
     };
   }

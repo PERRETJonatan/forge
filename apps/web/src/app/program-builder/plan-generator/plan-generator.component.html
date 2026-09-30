@@ -95,6 +95,26 @@
     </label>
   </div>
 
+  <div class="field">
+    <span class="field-label">Strength sessions</span>
+    <div class="segmented" role="group" aria-label="Strength sessions per week">
+      @for (n of strengthOptions; track n) {
+        <button
+          type="button"
+          [class.active]="strengthSessions() === n"
+          [attr.aria-pressed]="strengthSessions() === n"
+          (click)="setStrengthSessions(n)"
+        >
+          {{ n === 0 ? 'None' : n + ' / week' }}
+        </button>
+      }
+    </div>
+    <span class="field-hint">
+      Gym work in base and build weeks, one maintenance session at peak, none in the taper.
+      It comes out of your weekly hours, not on top of them.
+    </span>
+  </div>
+
   @if (formError(); as problem) {
     <p class="form-error">{{ problem }}</p>
   }

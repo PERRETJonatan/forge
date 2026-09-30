@@ -212,6 +212,10 @@ input[type='date'] {
   width: 72px;
 }
 
+.field input.short {
+  width: 56px;
+}
+
 .unit-field .unit {
   font-size: 11px;
   color: var(--text-muted);

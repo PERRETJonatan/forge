@@ -16,6 +16,7 @@ function input(overrides: Partial<GeneratorInput> = {}): GeneratorInput {
     trainingDays: [1, 2, 3, 4, 5, 6],
     longRideDay: 5,
     longRunDay: 6,
+    strengthSessionsPerWeek: 2,
     blockedDates: new Set(),
     ...overrides,
   };
@@ -155,6 +156,53 @@ describe("generatePlan", () => {
       expect(plan.at(-1)!.phase).toBe("RACE");
       expect(allWorkouts(plan).length).toBeGreaterThan(40);
     }
+  });
+});
+
+describe("generatePlan strength sessions", () => {
+  const weeks = generatePlan(input());
+  const gym = (week: GeneratedWeek) => week.workouts.filter((w) => w.discipline === "STRENGTH");
+
+  it("schedules the requested gym sessions in base/build, one in peak and recovery weeks, none from the taper on", () => {
+    for (const week of weeks) {
+      const expected =
+        week.phase === "TAPER" || week.phase === "RACE" ? 0 : week.recovery || week.phase === "PEAK" ? 1 : 2;
+      expect(gym(week)).toHaveLength(expected);
+    }
+  });
+
+  it("goes from strength-endurance in base to heavy in build", () => {
+    const base = weeks.find((w) => w.phase === "BASE" && !w.recovery)!;
+    const build = weeks.find((w) => w.phase === "BUILD" && !w.recovery)!;
+    const reps = (week: GeneratedWeek) =>
+      gym(week).flatMap((w) => w.structuredIntervals).filter((s) => s.reps != null).map((s) => s.reps!);
+    expect(Math.min(...reps(base))).toBeGreaterThanOrEqual(10);
+    expect(gym(build).map((w) => w.title)).toContain("Strength · heavy legs");
+    expect(Math.min(...reps(build))).toBeLessThanOrEqual(6);
+  });
+
+  it("keeps gym sessions off the long ride and long run days, and on separate days", () => {
+    for (const week of weeks) {
+      const dates = gym(week).map((w) => w.date);
+      expect(new Set(dates).size).toBe(dates.length);
+      for (const date of dates) expect([5, 6]).not.toContain(weekday(date));
+    }
+  });
+
+  it("takes gym time out of the week's hours rather than adding it on top", () => {
+    const without = generatePlan(input({ strengthSessionsPerWeek: 0 }));
+    const hours = (plan: GeneratedWeek[]) => plan.reduce((sum, w) => sum + w.plannedHours, 0);
+    expect(allWorkouts(without).some((w) => w.discipline === "STRENGTH")).toBe(false);
+    expect(Math.abs(hours(weeks) - hours(without))).toBeLessThan(hours(without) * 0.05);
+  });
+
+  it("caps gym time at a quarter of a small week", () => {
+    const small = input({ maxWeeklyHours: 4, startingHours: 3 });
+    const budgets = planWeeks(small);
+    generatePlan(small).forEach((week, i) => {
+      const gymSec = gym(week).reduce((sum, w) => sum + w.targetDurationSec, 0);
+      expect(gymSec).toBeLessThanOrEqual(budgets[i].hours * 0.25 * 3600);
+    });
   });
 });
 

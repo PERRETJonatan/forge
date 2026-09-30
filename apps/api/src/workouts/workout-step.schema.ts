@@ -16,6 +16,10 @@ export const workoutStepSchema: z.ZodType<WorkoutStep> = z.lazy(() =>
     targetMode: z.enum(["absolute", "percent"]).optional(),
     repeat: z.number().int().positive().optional(),
     steps: z.array(workoutStepSchema).optional(),
+    sets: z.number().int().positive().max(50).optional(),
+    reps: z.number().int().positive().max(500).optional(),
+    loadKg: z.number().nonnegative().max(1000).optional(),
+    restSec: z.number().int().nonnegative().max(3600).optional(),
   }),
 );
 

@@ -253,8 +253,8 @@ export const GLOSSARY: GlossaryTerm[] = [
     body: [
       '1 is barely moving, 5 a steady conversational pace, 7 comfortably hard, 9–10 all-out. It needs no device and captures things power and heart rate miss, like heat or accumulated fatigue.',
     ],
-    inForge: 'Any builder step can target an RPE instead of power, pace or heart rate; for TSS it counts as IF ≈ RPE ÷ 10.',
-    related: ['zones', 'if'],
+    inForge: 'Any builder step can target an RPE instead of power, pace or heart rate; for TSS it counts as IF ≈ RPE ÷ 10. It is the only target a strength exercise has.',
+    related: ['zones', 'if', 'strength'],
   },
   {
     id: 'race-pace',
@@ -290,6 +290,18 @@ export const GLOSSARY: GlossaryTerm[] = [
     ],
     inForge: 'Generated plans add a 15–30 minute brick run after the long ride from the build phase on (not for Sprint).',
     related: ['race-pace', 'long-sessions'],
+  },
+  {
+    id: 'strength',
+    term: 'Strength training',
+    category: 'workouts',
+    short: 'Gym work (sets, reps and load) that makes a triathlete more durable and economical.',
+    body: [
+      'Heavy, low-rep lifting improves running and cycling economy and helps muscles resist late-race fatigue without adding much bulk. Most plans start with moderate loads and higher reps to learn the movements, go heavier in the build, then keep one short session to maintain strength. They stop gym work in the taper so no new soreness arrives near race day.',
+    ],
+    inForge:
+      'In the builder, a Strength workout is made of exercises (sets × reps, load, rest, RPE); a circuit repeats its exercises once per round. Time is estimated as sets × (4 s per rep + rest), and TSS from the RPE over that time (session RPE). Generated plans add the sessions you pick in base and build weeks: strength-endurance in base, heavy in build. They add one maintenance session in peak weeks, mobility and core in recovery weeks, and nothing from the taper on. Gym time comes out of the week’s hours and is capped at a quarter of them.',
+    related: ['rpe', 'periodization', 'taper'],
   },
   {
     id: 'long-sessions',

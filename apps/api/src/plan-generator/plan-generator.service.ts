@@ -62,6 +62,7 @@ async function prepare(athleteId: string, request: PlanGenerationRequest, today:
     trainingDays: request.trainingDays,
     longRideDay: request.longRideDay,
     longRunDay: request.longRunDay,
+    strengthSessionsPerWeek: request.strengthSessionsPerWeek,
     blockedDates: new Set(keptDates),
   });
 

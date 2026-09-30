@@ -57,6 +57,25 @@ function intensityFactorFor(step: WorkoutStep, thresholds: AthleteThresholds): n
   }
 }
 
+/** Time under load per rep, including the set-up around it, for estimating a set's length. */
+export const SEC_PER_REP = 4;
+
+/** A gym exercise (sets/reps/load/rest) rather than a timed or distance step. */
+export function isExerciseStep(step: WorkoutStep): boolean {
+  return step.sets != null || step.reps != null || step.loadKg != null || step.restSec != null;
+}
+
+/**
+ * Total time of an exercise step: each set's work (its own duration for a timed hold, else
+ * reps x SEC_PER_REP) plus the rest after it. Rest after the last set counts too -- it's the
+ * changeover to the next exercise.
+ */
+export function exerciseDurationSec(step: WorkoutStep): number {
+  const sets = step.sets ?? 1;
+  const workSec = step.durationSec ?? (step.reps ?? 0) * SEC_PER_REP;
+  return sets * (workSec + (step.restSec ?? 0));
+}
+
 function walkSteps(steps: WorkoutStep[], thresholds: AthleteThresholds, repeatFactor: number, acc: StepsSummary): void {
   for (const step of steps) {
     if (step.repeat != null && step.steps) {
@@ -65,8 +84,11 @@ function walkSteps(steps: WorkoutStep[], thresholds: AthleteThresholds, repeatFa
     }
 
     const n = repeatFactor;
-    if (step.durationSec != null) {
-      const durationSec = step.durationSec * n;
+    // Exercises are timed from sets/reps/rest; at their RPE target that's the session-RPE
+    // (sRPE) load method, the usual way to put gym work on the same TSS scale.
+    const stepSec = isExerciseStep(step) ? exerciseDurationSec(step) : step.durationSec;
+    if (stepSec != null) {
+      const durationSec = stepSec * n;
       acc.durationSec += durationSec;
       const intensityFactor = intensityFactorFor(step, thresholds) ?? DEFAULT_UNTARGETED_IF;
       acc.estimatedTss += intensityFactor ** 2 * (durationSec / 3600) * 100;

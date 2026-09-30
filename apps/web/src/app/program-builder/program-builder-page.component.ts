@@ -2,7 +2,7 @@ import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import type { AthleteThresholds, CoachWorkoutDraft, Discipline, WorkoutStep, WorkoutTemplate } from '@forge/shared';
-import { summarizeSteps } from '@forge/shared';
+import { isExerciseStep, summarizeSteps } from '@forge/shared';
 import { DISCIPLINES, DISCIPLINE_LABELS } from '../workouts/discipline';
 import { WorkoutService } from '../workouts/workout.service';
 import { ThresholdsService } from '../thresholds/thresholds.service';
@@ -26,6 +26,27 @@ function isGroup(block: WorkoutStep | Group): block is Group {
 function blankLeaf(): WorkoutStep {
   return { label: '', durationSec: 300 };
 }
+
+/** In a circuit the group's repeat is the rounds, so its exercises start without sets -- and
+ * with an explicit 0 rest, which keeps them exercises even while the reps field is cleared. */
+function blankExercise(inCircuit = false): WorkoutStep {
+  return inCircuit ? { label: '', reps: 10, restSec: 0 } : { label: '', sets: 3, reps: 10, restSec: 90 };
+}
+
+/** Fields only a gym exercise carries -- meaningless once the workout isn't strength. */
+function withoutExerciseFields(step: WorkoutStep): WorkoutStep {
+  const { sets, reps, loadKg, restSec, ...rest } = step;
+  return rest;
+}
+
+/** Suggestions for the exercise name field -- free text, not a fixed library. */
+const EXERCISE_NAMES = [
+  'Back squat', 'Front squat', 'Goblet squat', 'Deadlift', 'Romanian deadlift', 'Hip thrust', 'Glute bridge',
+  'Walking lunge', 'Bulgarian split squat', 'Step-up', 'Calf raise', 'Single-leg calf raise', 'Box jump',
+  'Pull-up', 'Lat pulldown', 'Bent-over row', 'Single-arm row', 'Bench press', 'Push-up', 'Overhead press',
+  'Face pull', 'Band pull-apart', 'Plank', 'Side plank', 'Dead bug', 'Bird dog', 'Pallof press',
+  'Hanging knee raise', 'Russian twist',
+];
 
 const EMPTY_THRESHOLDS: AthleteThresholds = {
   ftpWatts: null,
@@ -56,6 +77,8 @@ export class ProgramBuilderPageComponent {
   readonly blocks = signal<(WorkoutStep | Group)[]>([]);
   readonly thresholds = signal<AthleteThresholds>(EMPTY_THRESHOLDS);
   readonly targetUnits = computed(() => TARGET_UNITS_BY_DISCIPLINE[this.discipline()]);
+  readonly isStrength = computed(() => this.discipline() === 'STRENGTH');
+  readonly exerciseNames = EXERCISE_NAMES;
 
   readonly summary = computed(() => summarizeSteps(this.blocks() as WorkoutStep[], this.thresholds()));
 
@@ -101,20 +124,20 @@ export class ProgramBuilderPageComponent {
   }
 
   isGroup = isGroup;
+  isExercise = isExerciseStep;
 
   formatPace = formatPace;
 
   onDisciplineChange(discipline: Discipline): void {
     this.discipline.set(discipline);
     // A target unit valid for the old discipline (e.g. power) may be meaningless for the new
-    // one (e.g. run) -- clear per-step targets rather than silently misinterpret them.
-    this.blocks.set(
-      this.blocks().map((block) =>
-        isGroup(block)
-          ? { ...block, steps: block.steps.map((s) => ({ ...s, targetLow: undefined, targetHigh: undefined, targetUnit: undefined })) }
-          : { ...block, targetLow: undefined, targetHigh: undefined, targetUnit: undefined },
-      ),
-    );
+    // one (e.g. run) -- clear per-step targets rather than silently misinterpret them. Same
+    // for sets/reps/load once the workout is no longer strength.
+    const reset = (s: WorkoutStep): WorkoutStep => {
+      const cleared = { ...s, targetLow: undefined, targetHigh: undefined, targetUnit: undefined };
+      return discipline === 'STRENGTH' ? cleared : withoutExerciseFields(cleared);
+    };
+    this.blocks.set(this.blocks().map((block) => (isGroup(block) ? { ...block, steps: block.steps.map(reset) } : reset(block))));
   }
 
   addLeaf(): void {
@@ -123,6 +146,14 @@ export class ProgramBuilderPageComponent {
 
   addGroup(): void {
     this.blocks.set([...this.blocks(), { repeat: 4, steps: [blankLeaf()] }]);
+  }
+
+  addExercise(): void {
+    this.blocks.set([...this.blocks(), blankExercise()]);
+  }
+
+  addCircuit(): void {
+    this.blocks.set([...this.blocks(), { repeat: 3, steps: [blankExercise(true), blankExercise(true)] }]);
   }
 
   removeBlock(index: number): void {
@@ -147,7 +178,9 @@ export class ProgramBuilderPageComponent {
 
   addStepToGroup(index: number): void {
     this.blocks.set(
-      this.blocks().map((b, i) => (i === index && isGroup(b) ? { ...b, steps: [...b.steps, blankLeaf()] } : b)),
+      this.blocks().map((b, i) =>
+        i === index && isGroup(b) ? { ...b, steps: [...b.steps, this.isStrength() ? blankExercise(true) : blankLeaf()] } : b,
+      ),
     );
   }
 
@@ -212,6 +245,24 @@ export class ProgramBuilderPageComponent {
 
   setGroupStepTargetLow(groupIndex: number, stepIndex: number, step: WorkoutStep, value: string): void {
     this.updateGroupStep(groupIndex, stepIndex, { targetLow: this.parseTargetLow(step, value) });
+  }
+
+  /** Parses a whole-number field; empty (or invalid) clears it. */
+  wholeNumber(value: string): number | undefined {
+    const n = Math.round(Number(value));
+    return value === '' || !Number.isFinite(n) || n < 0 ? undefined : n;
+  }
+
+  /** Parses a load in kg, allowing plate-sized decimals like 22.5. */
+  loadKg(value: string): number | undefined {
+    const n = Number(value);
+    return value === '' || !Number.isFinite(n) || n < 0 ? undefined : n;
+  }
+
+  /** An exercise's RPE target -- the only target a strength step has. */
+  rpePatch(value: string): Partial<WorkoutStep> {
+    const rpe = this.wholeNumber(value);
+    return rpe != null ? { targetLow: Math.min(10, rpe), targetUnit: 'rpe', targetMode: undefined } : { targetLow: undefined, targetUnit: undefined };
   }
 
   durationMinutes(step: WorkoutStep): number | null {

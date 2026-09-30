@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import type { WorkoutStep } from '@forge/shared';
+import { isExerciseStep, type WorkoutStep } from '@forge/shared';
 import { formatPace } from '../../shared/pace';
 
 /** What a %-of-threshold target is a percentage of, per unit. */
@@ -34,6 +34,20 @@ const TARGET_UNIT_LABELS: Record<string, string> = {
 export class WorkoutStepsComponent {
   @Input() steps: WorkoutStep[] = [];
 
+  isExercise = isExerciseStep;
+
+  /** "4 × 5", "3 × 45 s" for a timed hold, or "10 reps" for a circuit exercise without sets. */
+  formatSetsReps(step: WorkoutStep): string {
+    const perSet = step.reps != null ? String(step.reps) : step.durationSec != null ? `${step.durationSec} s` : '';
+    if (step.sets == null) return step.reps != null ? `${step.reps} reps` : perSet;
+    return perSet ? `${step.sets} × ${perSet}` : `${step.sets} sets`;
+  }
+
+  formatRest(seconds: number | undefined): string | null {
+    if (!seconds) return null;
+    return seconds >= 60 && seconds % 60 === 0 ? `${seconds / 60} min rest` : `${seconds} s rest`;
+  }
+
   formatDuration(seconds: number | undefined): string | null {
     if (seconds == null) return null;
     const minutes = Math.round(seconds / 60);
@@ -47,6 +61,7 @@ export class WorkoutStepsComponent {
 
   formatTarget(step: WorkoutStep): string | null {
     if (step.targetLow == null && step.targetHigh == null) return null;
+    if (step.targetUnit === 'rpe') return `RPE ${this.range(step, (v) => String(v))}`;
     if (step.targetMode === 'percent') {
       const of = step.targetUnit ? PERCENT_OF[step.targetUnit] : undefined;
       return `${this.range(step, (v) => String(v))}%${of ? ` ${of}` : ''}`;

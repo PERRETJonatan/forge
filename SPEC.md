@@ -62,12 +62,20 @@ athletes aren't limited to importing a plan — they can build one directly in F
   repeat it on a schedule (e.g. "every Tuesday for 8 weeks") to build out a whole block.
 - Built workouts live in the same unified workout model as imported ones (`source: manual`)
   and appear identically in calendar/list views and in TSS/CTL/ATL calculations.
+- Strength training: a Strength workout is built from gym exercises (name, sets x reps,
+  load in kg, rest, RPE) instead of timed steps; a repeat group of exercises is a circuit
+  (rounds). Duration is estimated as sets x (4 s per rep + rest) and TSS from the RPE over
+  that time (session-RPE), so gym work counts in CTL/ATL like everything else.
+- Plan generator: optional 0-2 gym sessions per week -- strength-endurance in base, heavy
+  in build, one maintenance session in peak, mobility/core in recovery weeks, none from the
+  taper on. Gym time comes out of the week's hours (capped at 25%), not on top of them.
 - Coach-assisted drafting: from the program builder, the athlete can ask the virtual
   coach (see below) to draft a structured workout from a plain-language request (e.g.
   "give me a 90-minute sweet-spot ride for tomorrow") — the coach proposes steps/targets
   pre-filled into the builder for the athlete to review, edit, and save; it never
   writes directly to the calendar without that review step.
-- Out of scope for v1: strength-exercise library (sets/reps/video demos), AI generation
+- Out of scope for v1: a curated strength-exercise library (video demos, per-exercise
+  instructions, 1RM tracking; the builder only suggests common exercise names), AI generation
   from a coach's freeform text without the athlete's own review step.
 
 ### 4. Strava sync (read-only)
@@ -201,7 +209,7 @@ primary nav flow, including plan import.
 - Writing planned workouts back to Strava/Garmin
 - Autonomous AI plan editing (coach can draft a workout, but the athlete must review
   and save it — the coach never writes to the calendar unattended)
-- Strength-exercise library (sets/reps/video demos) in the program builder
+- Curated strength-exercise library (video demos, instructions, 1RM tracking) in the program builder
 - AI-generated plans/workouts issued by a coach role for someone else (no coach role in v1)
 - Cloud deployment/hosting setup
 - Mobile app (web SPA only, responsive is a nice-to-have not a requirement)

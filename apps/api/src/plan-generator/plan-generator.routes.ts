@@ -22,6 +22,7 @@ const requestSchema = z
     trainingDays: z.array(weekdaySchema).min(3).max(7),
     longRideDay: weekdaySchema,
     longRunDay: weekdaySchema,
+    strengthSessionsPerWeek: z.union([z.literal(0), z.literal(1), z.literal(2)]).default(0),
     // The client's own calendar day, so "can't start in the past" follows the athlete's timezone.
     today: z.string().date().optional(),
   })

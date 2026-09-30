@@ -10,11 +10,21 @@
         <div class="leaf">
           <span class="label">{{ step.label || 'Step' }}</span>
           <span class="meta">
-            @if (formatDuration(step.durationSec); as d) {
-              <span>{{ d }}</span>
-            }
-            @if (formatDistance(step.distanceM); as dist) {
-              <span>{{ dist }}</span>
+            @if (isExercise(step)) {
+              <span>{{ formatSetsReps(step) }}</span>
+              @if (step.loadKg != null) {
+                <span>{{ step.loadKg }} kg</span>
+              }
+              @if (formatRest(step.restSec); as rest) {
+                <span>{{ rest }}</span>
+              }
+            } @else {
+              @if (formatDuration(step.durationSec); as d) {
+                <span>{{ d }}</span>
+              }
+              @if (formatDistance(step.distanceM); as dist) {
+                <span>{{ dist }}</span>
+              }
             }
             @if (formatTarget(step); as target) {
               <span>{{ target }}</span>

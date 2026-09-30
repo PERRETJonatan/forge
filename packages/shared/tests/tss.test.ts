@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AthleteThresholds, WorkoutStep } from "../src/index.js";
-import { summarizeSteps } from "../src/tss.js";
+import { exerciseDurationSec, summarizeSteps } from "../src/tss.js";
 
 const NO_THRESHOLDS: AthleteThresholds = {
   ftpWatts: null,
@@ -75,5 +75,28 @@ describe("summarizeSteps", () => {
     expect(summary.distanceM).toBe(1000);
     expect(summary.durationSec).toBe(0);
     expect(summary.estimatedTss).toBe(0);
+  });
+});
+
+describe("exercise steps", () => {
+  it("times sets x (reps x 4s + rest), rest after the last set included", () => {
+    expect(exerciseDurationSec({ label: "Back squat", sets: 4, reps: 5, restSec: 120 })).toBe(4 * (20 + 120));
+  });
+
+  it("uses a timed hold's own duration per set instead of reps", () => {
+    expect(exerciseDurationSec({ label: "Plank", sets: 3, durationSec: 45, restSec: 30 })).toBe(3 * 75);
+  });
+
+  it("counts an exercise in a circuit once per round", () => {
+    const steps: WorkoutStep[] = [
+      { repeat: 3, steps: [{ label: "Squat", reps: 10 }, { label: "Push-up", reps: 10, restSec: 60 }] },
+    ];
+    expect(summarizeSteps(steps, NO_THRESHOLDS).durationSec).toBe(3 * (40 + 100));
+  });
+
+  it("estimates load from the RPE target over the whole set + rest time (session RPE)", () => {
+    const summary = summarizeSteps([{ label: "Deadlift", sets: 5, reps: 3, restSec: 708, targetLow: 8, targetUnit: "rpe" }], NO_THRESHOLDS);
+    expect(summary.durationSec).toBe(3600);
+    expect(summary.estimatedTss).toBeCloseTo(64);
   });
 });
