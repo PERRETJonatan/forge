@@ -186,3 +186,25 @@ button.active {
   background: var(--info-bg);
   color: var(--text);
 }
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 22px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .summary {
+    gap: 12px;
+  }
+
+  .hero {
+    font-size: 44px;
+  }
+
+  .panel-header {
+    flex-wrap: wrap;
+  }
+}

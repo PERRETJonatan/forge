@@ -121,3 +121,42 @@ h1 {
   color: var(--text);
   background: var(--surface);
 }
+
+@media (max-width: 600px) {
+  .page-header {
+    gap: 12px;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .view-toggle button {
+    flex: 1;
+  }
+
+  .month-nav {
+    justify-content: space-between;
+  }
+
+  .month-label {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .nav-btn,
+  .today-btn {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .filters select {
+    flex: 1;
+    min-width: 0;
+  }
+}

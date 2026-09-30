@@ -23,7 +23,8 @@ export class CalendarPageComponent {
   readonly disciplines = DISCIPLINES;
   readonly disciplineLabels = DISCIPLINE_LABELS;
 
-  readonly viewMode = signal<ViewMode>('calendar');
+  // A seven-column month is cramped on a phone, so small screens open on the list.
+  readonly viewMode = signal<ViewMode>(window.matchMedia('(max-width: 600px)').matches ? 'list' : 'calendar');
   readonly month = signal(startOfMonth(new Date()));
   readonly days = computed(() => buildMonthGrid(this.month()));
   readonly monthLabel = computed(() =>

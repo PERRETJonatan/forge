@@ -48,3 +48,13 @@
   color: var(--accent);
   margin-bottom: 4px;
 }
+
+@media (max-width: 600px) {
+  .leaf {
+    flex-wrap: wrap;
+  }
+
+  .meta {
+    flex-wrap: wrap;
+  }
+}

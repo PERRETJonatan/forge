@@ -115,3 +115,13 @@ textarea {
   background-color: var(--surface);
   color: var(--text);
 }
+
+/* iOS Safari zooms the page into any focused field under 16px and doesn't zoom back out.
+   Component styles size fields at 13-14px, so phones override them here. */
+@media (max-width: 800px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

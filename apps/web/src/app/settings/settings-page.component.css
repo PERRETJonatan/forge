@@ -246,3 +246,36 @@ button.secondary.danger {
   font-weight: 600;
   font-size: 12px;
 }
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 22px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .feed-row input[type='text'] {
+    flex-basis: 100%;
+  }
+
+  input[type='file'] {
+    max-width: 100%;
+  }
+
+  .thresholds-form button {
+    width: 100%;
+  }
+
+  /* The import history has five columns; let it scroll sideways rather than squash. */
+  .history {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .history th,
+  .history td {
+    white-space: nowrap;
+  }
+}

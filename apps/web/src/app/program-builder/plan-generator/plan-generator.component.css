@@ -296,3 +296,41 @@ details[open] > summary::before {
   display: block;
   margin: 0 0 12px 60px;
 }
+
+@media (max-width: 600px) {
+  .panel {
+    padding: 16px;
+  }
+
+  .form-grid .field {
+    flex: 1 1 100%;
+  }
+
+  .day {
+    flex: 1 0 40px;
+    min-width: 0;
+    padding: 10px 0;
+  }
+
+  .actions button,
+  .preview-header button {
+    width: 100%;
+  }
+
+  .preview-header > div {
+    flex: 1 1 100%;
+  }
+
+  .week-date {
+    min-width: 0;
+  }
+
+  .workouts {
+    padding-left: 12px;
+  }
+
+  .workout-notes,
+  .workouts app-workout-steps {
+    margin-left: 0;
+  }
+}

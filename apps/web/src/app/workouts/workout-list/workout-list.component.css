@@ -80,3 +80,42 @@
 .row.completed .status {
   color: var(--text-muted);
 }
+
+/* Phones: date, badge and status on the first line; title and meta below. */
+@media (max-width: 600px) {
+  .row {
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas:
+      'date badge status'
+      'title title title'
+      'meta meta meta';
+    gap: 4px 10px;
+    padding: 10px 12px;
+  }
+
+  .date {
+    grid-area: date;
+  }
+
+  .badge {
+    grid-area: badge;
+    justify-self: start;
+  }
+
+  .status {
+    grid-area: status;
+  }
+
+  .title {
+    grid-area: title;
+    white-space: normal;
+  }
+
+  .meta {
+    grid-area: meta;
+  }
+
+  .meta:empty {
+    display: none;
+  }
+}

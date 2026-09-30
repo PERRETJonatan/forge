@@ -1,11 +1,33 @@
 <div class="shell">
-  <aside class="sidebar">
+  <!-- Phones only: the sidebar collapses into a drawer this bar opens. -->
+  <header class="topbar">
+    <div class="brand">
+      <img class="logo" src="logo.svg" alt="" />
+      <span>Forge</span>
+    </div>
+    <button
+      type="button"
+      class="menu-toggle"
+      aria-controls="sidebar"
+      [attr.aria-expanded]="menuOpen()"
+      [attr.aria-label]="menuOpen() ? 'Close menu' : 'Open menu'"
+      (click)="menuOpen.set(!menuOpen())"
+    >
+      <span class="menu-icon" [class.open]="menuOpen()" aria-hidden="true"></span>
+    </button>
+  </header>
+
+  @if (menuOpen()) {
+    <div class="scrim" (click)="menuOpen.set(false)"></div>
+  }
+
+  <aside id="sidebar" class="sidebar" [class.open]="menuOpen()">
     <div class="brand">
       <img class="logo" src="logo.svg" alt="" />
       <span>Forge</span>
     </div>
 
-    <nav>
+    <nav (click)="menuOpen.set(false)">
       <a routerLink="/calendar" routerLinkActive="active">Calendar</a>
       <a routerLink="/builder" routerLinkActive="active">Builder</a>
       <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>

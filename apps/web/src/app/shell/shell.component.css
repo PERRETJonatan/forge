@@ -148,3 +148,144 @@ nav a.active {
   padding: 32px 40px;
   box-sizing: border-box;
 }
+
+.topbar,
+.scrim {
+  display: none;
+}
+
+/* Phones: the sidebar becomes an off-canvas drawer behind a sticky top bar. */
+@media (max-width: 800px) {
+  .shell {
+    flex-direction: column;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    padding: 0 8px 0 16px;
+    padding-top: env(safe-area-inset-top);
+    box-sizing: content-box;
+    background: var(--sidebar-bg);
+    border-bottom: 1px solid var(--sidebar-border);
+    color: #f6f5f1;
+  }
+
+  .topbar .brand {
+    margin-bottom: 0;
+  }
+
+  .topbar .logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .topbar .brand span {
+    font-size: 18px;
+  }
+
+  .menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  /* Three-bar icon drawn from one span and its pseudo-elements; it turns into an X when open. */
+  .menu-icon,
+  .menu-icon::before,
+  .menu-icon::after {
+    display: block;
+    width: 20px;
+    height: 2px;
+    border-radius: 1px;
+    background: #f6f5f1;
+    transition: transform 0.2s, background-color 0.2s;
+  }
+
+  .menu-icon {
+    position: relative;
+  }
+
+  .menu-icon::before,
+  .menu-icon::after {
+    content: '';
+    position: absolute;
+    left: 0;
+  }
+
+  .menu-icon::before {
+    top: -6px;
+  }
+
+  .menu-icon::after {
+    top: 6px;
+  }
+
+  .menu-icon.open {
+    background: transparent;
+  }
+
+  .menu-icon.open::before {
+    transform: translateY(6px) rotate(45deg);
+  }
+
+  .menu-icon.open::after {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 70;
+    width: min(280px, 85vw);
+    padding-top: calc(28px + env(safe-area-inset-top));
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0.2s;
+  }
+
+  .sidebar.open {
+    transform: none;
+    visibility: visible;
+  }
+
+  nav a {
+    padding: 12px;
+    font-size: 15px;
+  }
+
+  .theme button {
+    padding: 8px 0;
+  }
+
+  .logout {
+    padding: 4px 0;
+    font-size: 12px;
+  }
+
+  .content {
+    padding: 20px 16px calc(32px + env(safe-area-inset-bottom));
+  }
+}

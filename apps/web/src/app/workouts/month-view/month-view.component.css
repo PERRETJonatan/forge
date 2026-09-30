@@ -5,7 +5,7 @@
 
 .weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 1px;
   margin-bottom: 4px;
 }
@@ -20,7 +20,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
@@ -92,4 +92,28 @@
 .workout-chip.completed {
   opacity: 0.55;
   text-decoration: line-through;
+}
+
+/* Phones: roughly 48px columns, so chips shrink to a single tight line. */
+@media (max-width: 600px) {
+  .weekday {
+    font-size: 11px;
+  }
+
+  .cell {
+    min-height: 64px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .workouts {
+    gap: 2px;
+  }
+
+  .workout-chip {
+    padding: 2px 3px;
+    border-radius: 3px;
+    font-size: 10px;
+    text-overflow: clip;
+  }
 }

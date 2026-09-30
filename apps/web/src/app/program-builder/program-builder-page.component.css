@@ -418,3 +418,78 @@ button.danger {
   padding: 8px 12px;
   font-size: 12px;
 }
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 22px;
+  }
+
+  .tabs {
+    overflow-x: auto;
+  }
+
+  .tabs button {
+    flex: 1 0 auto;
+    border-radius: 0;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .builder-header > *,
+  .title-field {
+    flex: 1 1 100%;
+  }
+
+  /* The move buttons drop below the step instead of squeezing it. */
+  .leaf-block {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px;
+  }
+
+  .leaf-block .block-actions {
+    justify-content: flex-end;
+  }
+
+  .group {
+    padding: 10px;
+  }
+
+  .step-row {
+    gap: 8px;
+  }
+
+  .label-field {
+    flex-basis: 100%;
+  }
+
+  .remove-step,
+  .block-actions button {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .add-buttons {
+    flex-wrap: wrap;
+  }
+
+  .summary {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+
+  .save-row > * {
+    flex: 1 1 100%;
+  }
+
+  .date-field input {
+    width: 100%;
+  }
+
+  .template-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

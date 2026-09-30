@@ -159,3 +159,42 @@ button.delete {
   color: var(--danger-text);
   padding-left: 0;
 }
+
+/* Phones: the form fills the screen as a sheet instead of floating in a card. */
+@media (max-width: 600px) {
+  .overlay {
+    padding: 0;
+  }
+
+  .panel {
+    max-width: none;
+    min-height: 100%;
+    border-radius: 0;
+    padding: calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .close {
+    padding: 8px;
+    margin-right: -8px;
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  input:not([type='checkbox']),
+  select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 380px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}

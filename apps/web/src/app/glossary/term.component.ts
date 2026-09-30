@@ -61,7 +61,7 @@ const EDGE_MARGIN = 16;
         top: calc(100% + 6px);
         left: 0;
         width: max-content;
-        max-width: 280px;
+        max-width: min(280px, calc(100vw - 32px));
         padding: 8px 10px;
         border-radius: 8px;
         background: var(--surface);
