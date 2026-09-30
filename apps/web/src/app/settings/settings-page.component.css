@@ -132,6 +132,11 @@ button.secondary.danger {
   text-decoration: none;
 }
 
+.feed-link {
+  margin: 0 0 4px 0;
+  word-break: break-all;
+}
+
 .feed-actions {
   display: flex;
   gap: 8px;

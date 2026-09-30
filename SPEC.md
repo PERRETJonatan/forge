@@ -81,13 +81,23 @@ athletes aren't limited to importing a plan — they can build one directly in F
 ### 4. Strava sync (read-only)
 
 - OAuth2 connect flow per athlete; store refresh token securely.
-- Initial full historical sync + periodic incremental sync (webhook or polling) of
-  activities (swim/bike/run at minimum).
+- Initial full historical sync (started right after connecting) + incremental sync of
+  activities (swim/bike/run at minimum): the API polls every connection whose last sync is
+  over 30 minutes old, and each sync looks back 3 days so late uploads aren't missed. A
+  failed background sync is shown in Settings.
 - Store per activity: distance, duration, pace/power/HR (avg + streams if available),
   elevation, discipline/type.
 - Match synced activities to planned workouts by date + discipline (best-effort,
   manual override possible when the match is wrong or ambiguous).
 - No write-back to Strava in v1 (planned workouts are not pushed to Strava/Garmin).
+- Runna plan sync (read-only): an athlete who follows a Runna plan pastes Runna's private
+  calendar link (https://cal.runna.com/<id>.ics) in Settings. Forge pulls the upcoming plan
+  workouts (runs and strength) as `source: runna`, parsing Runna's step prose into structured
+  steps with pace targets, and re-reads the feed every few hours: new workouts are added,
+  moved/changed ones updated, future ones the plan dropped removed; past and completed ones
+  are left alone. Completed runs still come in through Strava (Runna uploads there) and
+  match the Runna workout by date + discipline. Only cal.runna.com links are ever fetched.
+  Workouts can't be pushed into Runna -- it has no import or API.
 
 ### 5. Fitness dashboard
 

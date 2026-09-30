@@ -11,6 +11,7 @@ import { planGeneratorRouter } from "./plan-generator/plan-generator.routes.js";
 import { planImportRouter } from "./plan-imports/plan-import.routes.js";
 import { apiLimiter } from "./rate-limit.js";
 import { raceTargetRouter } from "./race-target/race-target.routes.js";
+import { runnaRouter } from "./runna/runna.routes.js";
 import { stravaRouter } from "./strava/strava.routes.js";
 import { thresholdsRouter } from "./thresholds/thresholds.routes.js";
 import { workoutTemplateRouter } from "./workout-templates/workout-template.routes.js";
@@ -37,6 +38,7 @@ export function createApp(): Express {
   app.use("/me/race-target", raceTargetRouter);
   app.use("/workout-templates", workoutTemplateRouter);
   app.use("/strava", stravaRouter);
+  app.use("/runna", runnaRouter);
   app.use("/fitness", fitnessRouter);
   app.use("/plan-generator", planGeneratorRouter);
   app.use("/coach", coachRouter);

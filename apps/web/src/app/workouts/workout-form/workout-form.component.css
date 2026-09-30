@@ -98,6 +98,15 @@ legend {
   padding: 0 6px;
 }
 
+.source-note {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--info-bg);
+  color: var(--text);
+  font-size: 12px;
+}
+
 .strava-banner {
   display: flex;
   align-items: center;

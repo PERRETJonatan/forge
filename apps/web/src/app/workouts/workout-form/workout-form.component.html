@@ -38,6 +38,10 @@
       </fieldset>
     }
 
+    @if (workout?.source === 'RUNNA' && !workout?.completed) {
+      <p class="source-note">From your Runna plan. Change it in Runna: edits here are replaced at the next sync.</p>
+    }
+
     @if (workout?.stravaActivityId) {
       <div class="strava-banner">
         <span>Actual data matched from a synced Strava activity.</span>

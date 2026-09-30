@@ -21,6 +21,15 @@ const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const ACTIVITIES_PER_PAGE = 100;
 // Safety bound on pagination so a misbehaving API response can't loop forever.
 const MAX_PAGES = 50;
+/**
+ * How far before the last sync each sync looks again. Strava filters by an activity's start
+ * time, so a run that started before the last sync but was uploaded after it (a watch syncing
+ * late, a long ride still going) would otherwise be skipped for good. Already-seen activities
+ * are only refreshed, never duplicated or re-matched.
+ */
+const SYNC_LOOKBACK_MS = 3 * 24 * 60 * 60 * 1000;
+/** How stale a connection can get before the background sync refreshes it (see background-sync.ts). */
+const AUTO_SYNC_AFTER_MS = 30 * 60 * 1000;
 
 export class StravaError extends Error {
   constructor(
@@ -60,6 +69,8 @@ export function athleteIdFromState(state: string): string {
   }
 }
 
+/** Stores the connection, then starts the first sync in the background so activities show up
+ * without the athlete having to press "Sync now" (its outcome lands in the status). */
 export async function handleCallback(athleteId: string, code: string): Promise<void> {
   let tokens;
   try {
@@ -82,14 +93,17 @@ export async function handleCallback(athleteId: string, code: string): Promise<v
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       expiresAt: tokens.expiresAt,
+      lastSyncError: null,
     },
   });
+  void syncActivities(athleteId).catch(() => {});
 }
 
 export interface StravaStatus {
   connected: boolean;
   stravaAthleteId: string | null;
   lastSyncAt: string | null;
+  lastSyncError: string | null;
 }
 
 export async function getStatus(athleteId: string): Promise<StravaStatus> {
@@ -98,6 +112,7 @@ export async function getStatus(athleteId: string): Promise<StravaStatus> {
     connected: connection != null,
     stravaAthleteId: connection ? connection.stravaAthleteId.toString() : null,
     lastSyncAt: connection?.lastSyncAt?.toISOString() ?? null,
+    lastSyncError: connection?.lastSyncError ?? null,
   };
 }
 
@@ -132,17 +147,51 @@ export interface SyncResult {
   createdNew: number;
 }
 
-/** Fetches every activity since the last sync (or all-time, on first sync), storing each as a
- * StravaActivity and, the first time it's seen, matching it to a planned workout on the same
- * date/discipline (best-effort) or creating a new source: STRAVA workout if none fits. */
-export async function syncActivities(athleteId: string): Promise<SyncResult> {
+/** Syncs in flight, per athlete: a "Sync now" that lands during a background sync (or two quick
+ * clicks) waits for the running one instead of racing it into duplicate activities. */
+const inFlight = new Map<string, Promise<SyncResult>>();
+
+/** Fetches activities since shortly before the last sync (or all-time, on first sync), storing each
+ * as a StravaActivity and, the first time it's seen, matching it to a planned workout on the same
+ * date/discipline (best-effort) or creating a new source: STRAVA workout if none fits. A failure
+ * is recorded on the connection for Settings to show. */
+export function syncActivities(athleteId: string): Promise<SyncResult> {
+  const running = inFlight.get(athleteId);
+  if (running) return running;
+  const sync = runSync(athleteId).finally(() => inFlight.delete(athleteId));
+  inFlight.set(athleteId, sync);
+  return sync;
+}
+
+async function runSync(athleteId: string): Promise<SyncResult> {
   const connection = await prisma.stravaConnection.findUnique({ where: { athleteId } });
   if (!connection) {
     throw new StravaError("Strava is not connected for this athlete", 404);
   }
+  try {
+    const result = await fetchAndMatch(athleteId, connection);
+    await prisma.stravaConnection.update({ where: { athleteId }, data: { lastSyncAt: new Date(), lastSyncError: null } });
+    return result;
+  } catch (err) {
+    const message = err instanceof StravaError ? err.message : "Sync failed.";
+    await prisma.stravaConnection.updateMany({ where: { athleteId }, data: { lastSyncError: message } });
+    throw err;
+  }
+}
 
-  const accessToken = await ensureFreshAccessToken(connection);
-  const after = connection.lastSyncAt ? Math.floor(connection.lastSyncAt.getTime() / 1000) : undefined;
+async function fetchAndMatch(athleteId: string, connection: StravaConnection): Promise<SyncResult> {
+  let accessToken: string;
+  try {
+    accessToken = await ensureFreshAccessToken(connection);
+  } catch (err) {
+    if (err instanceof StravaApiError) {
+      throw new StravaError("Strava refused Forge's access. Disconnect and connect Strava again.", err.status);
+    }
+    throw err;
+  }
+  const after = connection.lastSyncAt
+    ? Math.floor((connection.lastSyncAt.getTime() - SYNC_LOOKBACK_MS) / 1000)
+    : undefined;
 
   const result: SyncResult = { fetched: 0, matchedExisting: 0, createdNew: 0 };
 
@@ -181,7 +230,7 @@ export async function syncActivities(athleteId: string): Promise<SyncResult> {
 
       const date = activityDay(activity.start_date);
       const matchTarget = await prisma.workout.findFirst({
-        where: { athleteId, date, discipline, source: { in: ["MANUAL", "IMPORT", "GENERATED"] }, stravaActivity: { is: null } },
+        where: { athleteId, date, discipline, source: { in: ["MANUAL", "IMPORT", "GENERATED", "RUNNA"] }, stravaActivity: { is: null } },
         orderBy: { createdAt: "asc" },
       });
 
@@ -223,8 +272,19 @@ export async function syncActivities(athleteId: string): Promise<SyncResult> {
     if (batch.length < ACTIVITIES_PER_PAGE) break;
   }
 
-  await prisma.stravaConnection.update({ where: { athleteId }, data: { lastSyncAt: new Date() } });
   return result;
+}
+
+/** Background pass: syncs every connection whose last sync is over AUTO_SYNC_AFTER_MS old (or
+ * never ran). One at a time, to stay well inside Strava's per-app rate limits. */
+export async function syncStaleConnections(): Promise<void> {
+  const stale = await prisma.stravaConnection.findMany({
+    where: { OR: [{ lastSyncAt: null }, { lastSyncAt: { lt: new Date(Date.now() - AUTO_SYNC_AFTER_MS) } }] },
+    select: { athleteId: true },
+  });
+  for (const { athleteId } of stale) {
+    await syncActivities(athleteId).catch(() => {});
+  }
 }
 
 /** Detaches a wrongly-matched activity from a workout: for a purely-synced workout (nothing

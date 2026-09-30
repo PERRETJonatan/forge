@@ -3,14 +3,34 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import type { PlanImport, StravaStatus } from '@forge/shared';
+import type { PlanImport, RunnaStatus, RunnaSyncResult, StravaStatus } from '@forge/shared';
 import { CalendarFeedService } from '../calendar-feed/calendar-feed.service';
 import { PlanImportService } from '../plan-import/plan-import.service';
 import { RaceTargetService } from '../race-target/race-target.service';
+import { RunnaService } from '../runna/runna.service';
 import { TermComponent } from '../glossary/term.component';
 import { formatPace, parsePace } from '../shared/pace';
 import { StravaService } from '../strava/strava.service';
 import { ThresholdsService } from '../thresholds/thresholds.service';
+
+/** The API's own message for a refused link or failed sync (Runna, Strava), which says what to fix. */
+function apiErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof HttpErrorResponse) {
+    if (err.status === 0) return 'Could not reach the Forge server. Check it\'s running and try again.';
+    if (typeof err.error?.error === 'string') return err.error.error;
+  }
+  return fallback;
+}
+
+function runnaSyncSummary(result: RunnaSyncResult): string {
+  const changes = [
+    result.created ? `${result.created} added` : null,
+    result.updated ? `${result.updated} updated` : null,
+    result.removed ? `${result.removed} removed` : null,
+  ].filter(Boolean);
+  const plan = `${result.inFeed} upcoming workout${result.inFeed === 1 ? '' : 's'} in your Runna plan`;
+  return changes.length ? `${plan}: ${changes.join(', ')}.` : `${plan}, already up to date.`;
+}
 
 /** Says why a save failed, so a network or server problem isn't mistaken for bad input. */
 function saveErrorMessage(err: unknown, what: string): string {
@@ -42,6 +62,7 @@ export class SettingsPageComponent {
   private thresholdsService = inject(ThresholdsService);
   private stravaService = inject(StravaService);
   private raceTargetService = inject(RaceTargetService);
+  private runnaService = inject(RunnaService);
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
 
@@ -49,6 +70,12 @@ export class SettingsPageComponent {
   readonly stravaBusy = signal(false);
   readonly stravaError = signal<string | null>(null);
   readonly stravaSyncMessage = signal<string | null>(null);
+
+  readonly runnaStatus = signal<RunnaStatus | null>(null);
+  readonly runnaLink = signal('');
+  readonly runnaBusy = signal(false);
+  readonly runnaError = signal<string | null>(null);
+  readonly runnaMessage = signal<string | null>(null);
 
   readonly thresholdsForm = this.fb.group({
     ftpWatts: [null as number | null],
@@ -91,6 +118,7 @@ export class SettingsPageComponent {
     void this.loadThresholds();
     void this.loadRaceTarget();
     void this.loadStravaStatus();
+    void this.loadRunnaStatus();
 
     const stravaParam = this.route.snapshot.queryParamMap.get('strava');
     if (stravaParam === 'connected') {
@@ -125,13 +153,16 @@ export class SettingsPageComponent {
     this.stravaSyncMessage.set(null);
     try {
       const result = await this.stravaService.sync();
+      // Each sync re-checks the last few days, so "fetched" includes activities already in Forge.
       this.stravaSyncMessage.set(
-        `Synced ${result.fetched} activit${result.fetched === 1 ? 'y' : 'ies'}: ${result.matchedExisting} matched to planned workouts, ${result.createdNew} added new.`,
+        result.matchedExisting + result.createdNew === 0
+          ? 'Up to date: no new activities on Strava.'
+          : `${result.matchedExisting} activit${result.matchedExisting === 1 ? 'y' : 'ies'} matched to planned workouts, ${result.createdNew} added new.`,
       );
-      await this.loadStravaStatus();
-    } catch {
-      this.stravaError.set('Could not sync with Strava. Try again.');
+    } catch (err) {
+      this.stravaError.set(apiErrorMessage(err, 'Could not sync with Strava. Try again.'));
     } finally {
+      await this.loadStravaStatus();
       this.stravaBusy.set(false);
     }
   }
@@ -144,11 +175,59 @@ export class SettingsPageComponent {
     this.stravaError.set(null);
     try {
       await this.stravaService.disconnect();
-      this.stravaStatus.set({ connected: false, stravaAthleteId: null, lastSyncAt: null });
+      this.stravaStatus.set({ connected: false, stravaAthleteId: null, lastSyncAt: null, lastSyncError: null });
     } catch {
       this.stravaError.set('Could not disconnect Strava. Try again.');
     } finally {
       this.stravaBusy.set(false);
+    }
+  }
+
+  private async loadRunnaStatus(): Promise<void> {
+    try {
+      this.runnaStatus.set(await this.runnaService.status());
+    } catch {
+      // The connect/sync buttons will surface any real error.
+    }
+  }
+
+  private async runRunna(action: () => Promise<RunnaSyncResult>, fallback: string): Promise<void> {
+    this.runnaBusy.set(true);
+    this.runnaError.set(null);
+    this.runnaMessage.set(null);
+    try {
+      this.runnaMessage.set(runnaSyncSummary(await action()));
+      this.runnaLink.set('');
+    } catch (err) {
+      this.runnaError.set(apiErrorMessage(err, fallback));
+    } finally {
+      await this.loadRunnaStatus();
+      this.runnaBusy.set(false);
+    }
+  }
+
+  connectRunna(): Promise<void> {
+    return this.runRunna(() => this.runnaService.connect(this.runnaLink()), 'Could not connect Runna. Try again.');
+  }
+
+  syncRunna(): Promise<void> {
+    return this.runRunna(() => this.runnaService.sync(), 'Could not sync with Runna. Try again.');
+  }
+
+  async disconnectRunna(): Promise<void> {
+    if (!confirm('Disconnect Runna? Your upcoming Runna workouts are removed from Forge; past and completed ones stay.')) {
+      return;
+    }
+    this.runnaBusy.set(true);
+    this.runnaError.set(null);
+    this.runnaMessage.set(null);
+    try {
+      await this.runnaService.disconnect();
+      this.runnaStatus.set({ feedUrl: null, lastSyncAt: null, lastSyncError: null });
+    } catch (err) {
+      this.runnaError.set(apiErrorMessage(err, 'Could not disconnect Runna. Try again.'));
+    } finally {
+      this.runnaBusy.set(false);
     }
   }
 

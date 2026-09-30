@@ -11,6 +11,7 @@ const STEPS_ORIGIN: Record<WorkoutSource, string> = {
   GENERATED: 'from your generated plan',
   COACH_DRAFT: 'drafted by the coach',
   STRAVA: 'from Strava',
+  RUNNA: 'from your Runna plan',
 };
 
 @Component({

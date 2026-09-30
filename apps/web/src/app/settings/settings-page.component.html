@@ -14,9 +14,13 @@
       <div class="strava-status">
         <span class="badge connected">Connected</span>
         <span class="hint small">
-          {{ status.lastSyncAt ? 'Last synced ' + (status.lastSyncAt | date: 'medium') : 'Never synced yet' }}
+          {{ status.lastSyncAt ? 'Last synced ' + (status.lastSyncAt | date: 'medium') : 'First sync in progress…' }}
         </span>
       </div>
+      <p class="hint small">New activities come in automatically within about half an hour.</p>
+      @if (status.lastSyncError && !stravaError()) {
+        <div class="banner error">Last sync failed: {{ status.lastSyncError }}</div>
+      }
       <div class="feed-actions">
         <button type="button" [disabled]="stravaBusy()" (click)="syncStrava()">
           {{ stravaBusy() ? 'Syncing…' : 'Sync now' }}
@@ -37,6 +41,67 @@
   }
   @if (stravaError()) {
     <div class="banner error">{{ stravaError() }}</div>
+  }
+</section>
+
+<section class="panel">
+  <h2>Runna</h2>
+  <p class="hint">
+    Follow your Runna plan in Forge: its upcoming runs and strength sessions show on your calendar
+    with their steps and paces, and count towards your planned load. Runna stays in charge. Forge
+    re-reads the plan every few hours, so a workout you move or change in Runna follows here, and
+    edits made in Forge to an upcoming Runna workout are overwritten. Completed runs arrive through
+    Strava, which Runna uploads to.
+  </p>
+
+  @if (runnaStatus(); as status) {
+    @if (status.feedUrl) {
+      <div class="strava-status">
+        <span class="badge connected">Connected</span>
+        <span class="hint small">
+          {{ status.lastSyncAt ? 'Last synced ' + (status.lastSyncAt | date: 'medium') : 'Not synced yet' }}
+        </span>
+      </div>
+      <p class="hint small feed-link">{{ status.feedUrl }}</p>
+      @if (status.lastSyncError && !runnaError()) {
+        <div class="banner error">Last sync failed: {{ status.lastSyncError }}</div>
+      }
+      <div class="feed-actions">
+        <button type="button" [disabled]="runnaBusy()" (click)="syncRunna()">
+          {{ runnaBusy() ? 'Syncing…' : 'Sync now' }}
+        </button>
+        <button type="button" class="secondary danger" [disabled]="runnaBusy()" (click)="disconnectRunna()">
+          Disconnect
+        </button>
+      </div>
+    } @else {
+      <form class="feed-row" (submit)="$event.preventDefault(); connectRunna()">
+        <input
+          type="text"
+          name="runnaLink"
+          inputmode="url"
+          autocomplete="off"
+          placeholder="https://cal.runna.com/…ics"
+          aria-label="Runna calendar link"
+          [value]="runnaLink()"
+          (input)="runnaLink.set($any($event.target).value)"
+        />
+        <button type="submit" [disabled]="runnaBusy() || !runnaLink().trim()">
+          {{ runnaBusy() ? 'Connecting…' : 'Connect' }}
+        </button>
+      </form>
+      <p class="hint small">
+        In the Runna app: Profile → Connected Apps &amp; Devices → Calendar Syncing, then copy the
+        iCal link. Keep it private: anyone with it can read your plan.
+      </p>
+    }
+  }
+
+  @if (runnaMessage()) {
+    <div class="banner success">{{ runnaMessage() }}</div>
+  }
+  @if (runnaError()) {
+    <div class="banner error">{{ runnaError() }}</div>
   }
 </section>
 

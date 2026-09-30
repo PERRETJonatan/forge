@@ -17,7 +17,7 @@ export interface LoginRequest {
 
 export type Discipline = 'SWIM' | 'BIKE' | 'RUN' | 'STRENGTH' | 'OTHER';
 
-export type WorkoutSource = 'MANUAL' | 'IMPORT' | 'STRAVA' | 'COACH_DRAFT' | 'GENERATED';
+export type WorkoutSource = 'MANUAL' | 'IMPORT' | 'STRAVA' | 'COACH_DRAFT' | 'GENERATED' | 'RUNNA';
 
 /**
  * Unit a step's target is expressed in. Imported plans can carry whatever unit the source
@@ -167,12 +167,31 @@ export interface StravaStatus {
   connected: boolean;
   stravaAthleteId: string | null;
   lastSyncAt: string | null;
+  /** Why the last sync failed, or null if it succeeded. Syncs also run in the background. */
+  lastSyncError: string | null;
 }
 
 export interface StravaSyncResult {
   fetched: number;
   matchedExisting: number;
   createdNew: number;
+}
+
+/** The athlete's Runna plan link (see apps/api/src/runna). `feedUrl` is null when not connected. */
+export interface RunnaStatus {
+  feedUrl: string | null;
+  lastSyncAt: string | null;
+  /** Why the last sync failed, or null if it succeeded. */
+  lastSyncError: string | null;
+}
+
+export interface RunnaSyncResult {
+  /** Upcoming workouts in the Runna plan. */
+  inFeed: number;
+  created: number;
+  updated: number;
+  /** Future workouts dropped from the Runna plan, deleted from Forge. */
+  removed: number;
 }
 
 /** The athlete's target race, shown as a countdown on the dashboard. Both null until set. */

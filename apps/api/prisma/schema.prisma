@@ -29,6 +29,13 @@ model Athlete {
   raceName String?
   raceDate DateTime?
 
+  /// Private iCal link to the athlete's Runna plan (https://cal.runna.com/<id>.ics). Upcoming
+  /// Runna workouts are pulled from it as source: RUNNA workouts. Null when not connected.
+  runnaFeedUrl       String?
+  runnaLastSyncAt    DateTime?
+  /// Why the last sync failed (feed unreachable, link revoked...), cleared by the next success.
+  runnaLastSyncError String?
+
   refreshTokens    RefreshToken[]
   workouts         Workout[]
   planImports      PlanImport[]
@@ -69,6 +76,9 @@ enum WorkoutSource {
   /// Written by the plan generator (program builder -> Training plan). Regenerating replaces
   /// only these (future, not completed), never hand-built or imported workouts.
   GENERATED
+  /// Pulled from the athlete's Runna calendar feed. Kept in step with the Runna plan: future,
+  /// uncompleted ones are updated or removed when the plan changes; past ones are left alone.
+  RUNNA
 }
 
 model Workout {
@@ -96,6 +106,10 @@ model Workout {
 
   completed Boolean @default(false)
 
+  /// Id of this workout in the service it was synced from (Runna's plan-day id), so a re-sync
+  /// updates the same row instead of adding a duplicate. Null for everything else.
+  externalId String?
+
   planImportId String?
   planImport   PlanImport? @relation(fields: [planImportId], references: [id], onDelete: SetNull)
 
@@ -106,6 +120,7 @@ model Workout {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([athleteId, externalId])
   @@index([athleteId, date])
   @@map("workouts")
 }
@@ -174,8 +189,12 @@ model StravaConnection {
   refreshToken    String
   expiresAt       DateTime
 
-  /// Null until the first sync completes; incremental syncs fetch activities after this.
-  lastSyncAt DateTime?
+  /// Null until the first sync completes; incremental syncs fetch activities from a few days
+  /// before this (see SYNC_LOOKBACK_MS), so late uploads aren't missed.
+  lastSyncAt    DateTime?
+  /// Why the last sync failed (e.g. access revoked on Strava), cleared by the next success.
+  /// Background syncs have no one watching, so Settings shows this.
+  lastSyncError String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
