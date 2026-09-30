@@ -27,7 +27,9 @@ All features below are in scope for v1. No feature list split into phases — se
   (distance/duration/target vs. actual, pace or power over the activity, splits/laps
   when available from Strava), the workout's notes/description, Strava sync status
   (matched activity link, "unmatch" action), and an edit entry point.
-- Calendar sync with phone (ics sync from the main url)
+- Calendar sync with phone (ics sync from the main url), plus one feed per sport on the same
+  private token (`/calendar-feed/<token>/swim.ics` ...): calendar apps color whole calendars,
+  so subscribing per sport is how each discipline gets its own color.
 
 ### 2. Plan import
 

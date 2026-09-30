@@ -97,15 +97,26 @@ function eventFor(workout: Workout, feedHost: string): string {
   return lines.map(foldLine).join(CRLF);
 }
 
+export interface FeedOptions {
+  /** Calendar name shown in the subscribing app. */
+  name: string;
+  /**
+   * Suggested calendar color (#rrggbb). Apps decide colors per calendar and most ignore this --
+   * the athlete picks one on subscribing -- but Apple Calendar uses it as the initial color.
+   */
+  color?: string;
+}
+
 /** Build a full VCALENDAR document for one athlete's workouts. */
-export function buildIcsFeed(workouts: Workout[], feedHost: string): string {
+export function buildIcsFeed(workouts: Workout[], feedHost: string, options: FeedOptions = { name: "Forge training plan" }): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//Forge//Training Calendar//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:Forge training plan",
+    `X-WR-CALNAME:${escapeText(options.name)}`,
+    ...(options.color ? [`X-APPLE-CALENDAR-COLOR:${options.color}`] : []),
     "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
     "X-PUBLISHED-TTL:PT1H",
     ...workouts.map((w) => eventFor(w, feedHost)),

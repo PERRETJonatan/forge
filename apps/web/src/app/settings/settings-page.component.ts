@@ -3,13 +3,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import type { PlanImport, RunnaStatus, RunnaSyncResult, StravaStatus } from '@forge/shared';
+import type { CalendarFeedStatus, PlanImport, RunnaStatus, RunnaSyncResult, StravaStatus } from '@forge/shared';
 import { CalendarFeedService } from '../calendar-feed/calendar-feed.service';
 import { PlanImportService } from '../plan-import/plan-import.service';
 import { RaceTargetService } from '../race-target/race-target.service';
 import { RunnaService } from '../runna/runna.service';
 import { TermComponent } from '../glossary/term.component';
 import { formatPace, parsePace } from '../shared/pace';
+import { DISCIPLINE_COLORS, DISCIPLINE_LABELS } from '../workouts/discipline';
 import { StravaService } from '../strava/strava.service';
 import { ThresholdsService } from '../thresholds/thresholds.service';
 
@@ -96,9 +97,13 @@ export class SettingsPageComponent {
   readonly raceError = signal<string | null>(null);
 
   readonly feedUrl = signal<string | null>(null);
+  readonly feedSports = signal<CalendarFeedStatus['sports']>([]);
   readonly feedBusy = signal(false);
   readonly feedError = signal<string | null>(null);
-  readonly feedCopied = signal(false);
+  /** The feed link just copied, to flip its button to "Copied!" for a moment. */
+  readonly copiedUrl = signal<string | null>(null);
+  readonly disciplineLabels = DISCIPLINE_LABELS;
+  readonly disciplineColors = DISCIPLINE_COLORS;
 
   readonly selectedFile = signal<File | null>(null);
   readonly importDate = signal(new Date().toISOString().slice(0, 10));
@@ -322,9 +327,14 @@ export class SettingsPageComponent {
     }
   }
 
+  private setFeed(status: CalendarFeedStatus): void {
+    this.feedUrl.set(status.url);
+    this.feedSports.set(status.sports);
+  }
+
   private async loadFeedStatus(): Promise<void> {
     try {
-      this.feedUrl.set((await this.calendarFeedService.status()).url);
+      this.setFeed(await this.calendarFeedService.status());
     } catch {
       // Non-critical on load; the enable/regenerate button will surface any real error.
     }
@@ -338,7 +348,7 @@ export class SettingsPageComponent {
     this.feedBusy.set(true);
     this.feedError.set(null);
     try {
-      this.feedUrl.set((await this.calendarFeedService.generate()).url);
+      this.setFeed(await this.calendarFeedService.generate());
     } catch {
       this.feedError.set('Could not set up the calendar feed. Try again.');
     } finally {
@@ -347,7 +357,7 @@ export class SettingsPageComponent {
   }
 
   async regenerateFeed(): Promise<void> {
-    if (!confirm('Regenerating invalidates the current feed URL — any calendar already subscribed to it will stop updating until you re-subscribe with the new link. Continue?')) {
+    if (!confirm('Regenerating invalidates the current feed links, the per-sport ones included — any calendar already subscribed will stop updating until you re-subscribe with the new links. Continue?')) {
       return;
     }
     await this.enableFeed();
@@ -358,7 +368,7 @@ export class SettingsPageComponent {
     this.feedError.set(null);
     try {
       await this.calendarFeedService.revoke();
-      this.feedUrl.set(null);
+      this.setFeed({ url: null, sports: [] });
     } catch {
       this.feedError.set('Could not disable the calendar feed. Try again.');
     } finally {
@@ -369,8 +379,8 @@ export class SettingsPageComponent {
   async copyFeedUrl(url: string): Promise<void> {
     try {
       await navigator.clipboard.writeText(url);
-      this.feedCopied.set(true);
-      setTimeout(() => this.feedCopied.set(false), 2000);
+      this.copiedUrl.set(url);
+      setTimeout(() => this.copiedUrl.update((current) => (current === url ? null : current)), 2000);
     } catch {
       // Clipboard API can be unavailable (e.g. insecure context); the URL is still selectable text.
     }

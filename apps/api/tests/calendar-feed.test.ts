@@ -19,7 +19,7 @@ describe("GET /calendar-feed", () => {
   it("reports no feed until sync is enabled", async () => {
     const res = await request(app).get("/calendar-feed").set(auth(token));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ url: null });
+    expect(res.body).toEqual({ url: null, sports: [] });
   });
 
   it("requires authentication", async () => {
@@ -58,7 +58,7 @@ describe("DELETE /calendar-feed", () => {
     expect(res.status).toBe(404);
 
     const status = await request(app).get("/calendar-feed").set(auth(token));
-    expect(status.body).toEqual({ url: null });
+    expect(status.body).toEqual({ url: null, sports: [] });
   });
 });
 
@@ -124,5 +124,60 @@ describe("GET /calendar-feed/:token.ics", () => {
 
     const res = await request(app).get(feedPath);
     expect(res.text).not.toContain("Other athlete's swim");
+  });
+});
+
+describe("per-sport feeds", () => {
+  async function enable() {
+    for (const [discipline, title] of [
+      ["SWIM", "CSS intervals"],
+      ["BIKE", "Threshold ride"],
+      ["RUN", "Long run"],
+      ["STRENGTH", "Leg day"],
+    ]) {
+      await request(app).post("/workouts").set(auth(token)).send({ discipline, date: "2026-09-25", title });
+    }
+    return (await request(app).post("/calendar-feed").set(auth(token))).body;
+  }
+
+  it("lists one URL per sport on the same token as the main feed", async () => {
+    const status = await enable();
+    const feedToken = /\/calendar-feed\/([0-9a-f]{48})\.ics$/.exec(status.url)![1];
+    expect(status.sports.map((s: { discipline: string }) => s.discipline)).toEqual(["SWIM", "BIKE", "RUN", "STRENGTH", "OTHER"]);
+    expect(status.sports[0].url).toMatch(new RegExp(`/calendar-feed/${feedToken}/swim\\.ics$`));
+    expect((await request(app).get("/calendar-feed").set(auth(token))).body).toEqual(status);
+  });
+
+  it("serves only that sport's workouts, as its own named calendar with a suggested color", async () => {
+    const status = await enable();
+    const swim = await request(app).get(new URL(status.sports[0].url).pathname);
+    expect(swim.status).toBe(200);
+    expect(swim.headers["content-type"]).toContain("text/calendar");
+    expect(swim.text.match(/BEGIN:VEVENT/g)).toHaveLength(1);
+    expect(swim.text).toContain("SUMMARY:Swim: CSS intervals (planned)");
+    expect(swim.text).toContain("X-WR-CALNAME:Forge · Swim");
+    expect(swim.text).toContain("X-APPLE-CALENDAR-COLOR:#2F6FED");
+
+    const run = await request(app).get(new URL(status.sports[2].url).pathname);
+    expect(run.text).toContain("SUMMARY:Run: Long run (planned)");
+    expect(run.text).not.toContain("CSS intervals");
+
+    // The all-workouts feed keeps every sport and its original name.
+    const all = await request(app).get(new URL(status.url).pathname);
+    expect(all.text.match(/BEGIN:VEVENT/g)).toHaveLength(4);
+    expect(all.text).toContain("X-WR-CALNAME:Forge training plan");
+  });
+
+  it("404s for an unknown sport, and for every sport once sync is turned off or the link regenerated", async () => {
+    const status = await enable();
+    const feedToken = /\/calendar-feed\/([0-9a-f]{48})\.ics$/.exec(status.url)![1];
+    expect((await request(app).get(`/calendar-feed/${feedToken}/yoga.ics`)).status).toBe(404);
+
+    await request(app).post("/calendar-feed").set(auth(token));
+    expect((await request(app).get(new URL(status.sports[0].url).pathname)).status).toBe(404);
+
+    const fresh = (await request(app).get("/calendar-feed").set(auth(token))).body;
+    await request(app).delete("/calendar-feed").set(auth(token));
+    expect((await request(app).get(new URL(fresh.sports[1].url).pathname)).status).toBe(404);
   });
 });

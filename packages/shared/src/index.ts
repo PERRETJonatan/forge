@@ -113,7 +113,14 @@ export interface WorkoutListQuery {
 export type PlanFormat = 'TRAININGPEAKS_CSV' | 'ICS' | 'FIT' | 'TCX';
 
 export interface CalendarFeedStatus {
+  /** Every workout, or null while calendar sync is off. */
   url: string | null;
+  /**
+   * One feed per discipline, on the same token: calendar apps color by calendar, not by event,
+   * so subscribing to each sport separately is how swims, rides and runs get their own color.
+   * Empty while calendar sync is off.
+   */
+  sports: { discipline: Discipline; url: string }[];
 }
 
 export interface PlanImport {

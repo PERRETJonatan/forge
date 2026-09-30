@@ -198,21 +198,42 @@
   @if (feedUrl(); as url) {
     <div class="feed-row">
       <input type="text" readonly [value]="url" (click)="$any($event.target).select()" />
-      <button type="button" (click)="copyFeedUrl(url)">{{ feedCopied() ? 'Copied!' : 'Copy' }}</button>
+      <button type="button" (click)="copyFeedUrl(url)">{{ copiedUrl() === url ? 'Copied!' : 'Copy' }}</button>
       <a class="subscribe-link" [href]="webcalUrl(url)">Subscribe</a>
     </div>
+
+    @if (feedSports().length) {
+      <h3 class="feed-subheading">One calendar per sport</h3>
+      <p class="hint small">
+        Calendar apps color a whole calendar, not single events. To give swims, rides and runs
+        their own color, subscribe to each sport here instead of the link above (both would show
+        every workout twice), then pick each calendar's color in your calendar app.
+      </p>
+      <ul class="sport-feeds">
+        @for (sport of feedSports(); track sport.discipline) {
+          <li>
+            <span class="sport-dot" [style.background]="disciplineColors[sport.discipline]"></span>
+            <span class="sport-name">{{ disciplineLabels[sport.discipline] }}</span>
+            <button type="button" class="secondary" (click)="copyFeedUrl(sport.url)">
+              {{ copiedUrl() === sport.url ? 'Copied!' : 'Copy' }}
+            </button>
+            <a class="subscribe-link" [href]="webcalUrl(sport.url)">Subscribe</a>
+          </li>
+        }
+      </ul>
+    }
     <div class="feed-actions">
       <button type="button" class="secondary" [disabled]="feedBusy()" (click)="regenerateFeed()">
-        Regenerate link
+        Regenerate links
       </button>
       <button type="button" class="secondary danger" [disabled]="feedBusy()" (click)="disableFeed()">
         Turn off
       </button>
     </div>
     <p class="hint small">
-      Anyone with this link can see your workouts — keep it private, and regenerate it if it
-      ever leaks (this breaks the old link, so you'll need to re-subscribe from your calendar
-      app with the new one).
+      Anyone with these links can see your workouts — keep them private, and regenerate them if
+      one ever leaks (this breaks all the old links, so you'll need to re-subscribe from your
+      calendar app with the new ones).
     </p>
   } @else {
     <button type="button" [disabled]="feedBusy()" (click)="enableFeed()">
