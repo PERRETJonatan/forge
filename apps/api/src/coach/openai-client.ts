@@ -16,13 +16,17 @@ interface ModelsResponse {
 }
 
 /**
- * Unlike Ollama, some OpenAI-compatible servers treat `json_schema` as best effort: they
- * prompt for it and at most check the reply parses, so the model can still answer in another
- * shape (a bare workout instead of {reply, workout}) or not in JSON at all -- most often a few
- * turns into a conversation, once its earlier replies in the history are plain text. Each
- * answer is checked against the schema's top-level required keys and retried a few times.
+ * Unlike Ollama, some OpenAI-compatible servers (strata among them) treat `json_schema` as
+ * best effort: they prompt for it and at most check the reply parses. With the coach's
+ * prompt -- which describes a workout in detail -- the model then often answers with a bare
+ * workout instead of {reply, workout}, or in plain text, which such a server may reject as
+ * "structured_output_failed" and throw away. Seen live: 1 answer in 4 had the right shape,
+ * while the same request without `response_format` got a sound plain-text answer every time.
+ *
+ * So: ask for the schema up to STRUCTURED_ATTEMPTS times, salvaging a bare workout; then ask
+ * once more without `response_format` and, for schemas with a "reply", take plain text as it.
  */
-const ATTEMPTS = 3;
+const STRUCTURED_ATTEMPTS = 2;
 
 function headers(): Record<string, string> {
   const h: Record<string, string> = { "Content-Type": "application/json" };
@@ -43,15 +47,32 @@ async function errorFrom(res: Response): Promise<CoachLlmError> {
   return new CoachLlmError(`The coach's model failed to answer: ${detail ?? `HTTP ${res.status}`}`, 502);
 }
 
-function hasRequiredKeys(raw: string, schema: object): boolean {
-  const required = (schema as { required?: unknown }).required;
+interface CoachSchema {
+  properties?: Record<string, unknown>;
+  required?: string[];
+}
+
+/**
+ * Brings an answer into the schema's top-level shape, or returns null if it can't. `allowText`
+ * accepts a plain-text answer as the "reply" (with every other required key null).
+ */
+export function coerceToSchema(raw: string, schema: object, allowText: boolean): string | null {
+  const { properties = {}, required = [] } = schema as CoachSchema;
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return false;
-    return !Array.isArray(required) || required.every((key) => typeof key === "string" && key in parsed);
+    parsed = JSON.parse(raw);
   } catch {
-    return false;
+    const text = raw.trim();
+    if (!allowText || !text || !("reply" in properties)) return null;
+    return JSON.stringify(Object.fromEntries(required.map((key) => [key, key === "reply" ? text : null])));
   }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  if (required.every((key) => key in parsed)) return raw;
+  // The model answered with just the workout: wrap it, leaving the text fields empty.
+  if ("workout" in properties && "sets" in parsed) {
+    return JSON.stringify(Object.fromEntries(required.map((key) => [key, key === "workout" ? parsed : ""])));
+  }
+  return null;
 }
 
 /** The server's own "the model didn't return valid JSON" -- worth another try, not an outage. */
@@ -63,7 +84,7 @@ async function isStructuredOutputFailure(res: Response): Promise<boolean> {
   return body?.error?.code === "structured_output_failed" || body?.error?.type === "structured_output_failed";
 }
 
-async function complete(messages: ChatTurn[], schema: object, signal: AbortSignal): Promise<Response> {
+async function complete(messages: ChatTurn[], schema: object | null, signal: AbortSignal): Promise<Response> {
   try {
     return await fetch(`${env.coachLlmUrl}/v1/chat/completions`, {
       method: "POST",
@@ -73,7 +94,7 @@ async function complete(messages: ChatTurn[], schema: object, signal: AbortSigna
         messages,
         temperature: 0.4,
         // Structured output: the server constrains (or at least asks for) this JSON schema.
-        response_format: { type: "json_schema", json_schema: { name: "coach_reply", schema } },
+        ...(schema ? { response_format: { type: "json_schema", json_schema: { name: "coach_reply", schema } } } : {}),
         // Qwen3-style reasoning models otherwise think at length before every answer;
         // templates without a thinking switch ignore it.
         chat_template_kwargs: { enable_thinking: false },
@@ -93,19 +114,20 @@ export function createOpenAiClient(): CoachLlm {
     async chat(messages, schema) {
       // One deadline for all attempts, so retries never outlast the proxy in front of the API.
       const signal = AbortSignal.timeout(env.ollamaTimeoutMs);
-      let content = "";
-      for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
-        const res = await complete(messages, schema, signal);
+      let lastError: CoachLlmError | null = null;
+      for (let attempt = 1; attempt <= STRUCTURED_ATTEMPTS + 1; attempt++) {
+        const structured = attempt <= STRUCTURED_ATTEMPTS;
+        const res = await complete(messages, structured ? schema : null, signal);
         if (!res.ok) {
-          if (attempt < ATTEMPTS && (await isStructuredOutputFailure(res))) continue;
-          throw await errorFrom(res);
+          if (!(await isStructuredOutputFailure(res))) throw await errorFrom(res);
+          lastError = await errorFrom(res);
+          continue;
         }
         const body = (await res.json()) as ChatCompletionResponse;
-        content = body.choices?.[0]?.message?.content ?? "";
-        if (hasRequiredKeys(content, schema)) return content;
+        const answer = coerceToSchema(body.choices?.[0]?.message?.content ?? "", schema, !structured);
+        if (answer) return answer;
       }
-      // Still off-shape after every attempt: hand it back and let the coach service report it.
-      return content;
+      throw lastError ?? new CoachLlmError("The coach's answer came back garbled. Try again.", 502);
     },
 
     async status() {
