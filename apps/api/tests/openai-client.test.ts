@@ -46,13 +46,12 @@ describe("OpenAI-compatible coach client", () => {
     expect(body.response_format).toEqual({ type: "json_schema", json_schema: { name: "coach_reply", schema } });
   });
 
-  it("retries an answer in the wrong shape, e.g. a bare workout", async () => {
-    fetchMock
-      .mockResolvedValueOnce(completion('{"title":"Long ride","discipline":"BIKE","sets":[]}'))
-      .mockResolvedValueOnce(completion('{"reply":"Here it is.","workout":{"title":"Long ride"}}'));
+  it("wraps a bare workout answer as the schema's workout", async () => {
+    fetchMock.mockResolvedValueOnce(completion('{"title":"Long ride","discipline":"BIKE","sets":[]}'));
 
-    await expect(createOpenAiClient().chat(messages, schema)).resolves.toBe('{"reply":"Here it is.","workout":{"title":"Long ride"}}');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const answer = JSON.parse(await createOpenAiClient().chat(messages, schema));
+    expect(answer).toEqual({ reply: "", workout: { title: "Long ride", discipline: "BIKE", sets: [] } });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("retries when the server reports the model's output wasn't valid JSON", async () => {
@@ -62,13 +61,30 @@ describe("OpenAI-compatible coach client", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("gives up after three attempts", async () => {
-    fetchMock.mockImplementation(async () => completion("not json"));
-    await expect(createOpenAiClient().chat(messages, schema)).resolves.toBe("not json");
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+  it("falls back to a plain request and takes its text as the reply", async () => {
+    fetchMock
+      .mockResolvedValueOnce(structuredOutputFailed())
+      .mockResolvedValueOnce(completion('{"something":"else"}'))
+      .mockResolvedValueOnce(completion("Keep Saturday's ride easy, you're carrying fatigue."));
 
-    fetchMock.mockReset();
+    const answer = JSON.parse(await createOpenAiClient().chat(messages, schema));
+    expect(answer).toEqual({ reply: "Keep Saturday's ride easy, you're carrying fatigue.", workout: null });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const lastBody = JSON.parse(String(fetchMock.mock.calls[2][1]?.body));
+    expect(lastBody.response_format).toBeUndefined();
+  });
+
+  it("doesn't take plain text for a schema without a reply", async () => {
+    const draftSchema = { type: "object", properties: { note: { type: "string" }, workout: { type: "object" } }, required: ["note", "workout"] };
+    fetchMock.mockImplementation(async () => completion("Here is a nice ride."));
+
+    await expect(createOpenAiClient().chat(messages, draftSchema)).rejects.toMatchObject({ status: 502 });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("reports the server's error once every attempt failed", async () => {
     fetchMock.mockImplementation(async () => structuredOutputFailed());
+
     await expect(createOpenAiClient().chat(messages, schema)).rejects.toBeInstanceOf(CoachLlmError);
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
