@@ -3,9 +3,11 @@ import { Prisma, type CoachMessage as CoachMessageRow } from "@prisma/client";
 import { prisma } from "../db.js";
 import { buildCoachContext } from "./coach-context.js";
 import { normalizeDraft, WORKOUT_FORMAT_INSTRUCTIONS, workoutJsonSchema } from "./coach-draft.js";
+import { env } from "../env.js";
 import { CoachLlmError, createOllamaClient, type ChatTurn, type CoachLlm } from "./ollama-client.js";
+import { createOpenAiClient } from "./openai-client.js";
 
-const defaultLlm = createOllamaClient();
+const defaultLlm = env.coachLlmApi === "openai" ? createOpenAiClient() : createOllamaClient();
 let activeLlm: CoachLlm = defaultLlm;
 
 /** Test-only seam: swap in a fake model so route tests run without an Ollama server. Pass

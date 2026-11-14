@@ -56,6 +56,15 @@ export const env = {
   /** A local model on a CPU can take a while; past this the coach reports it timed out. */
   ollamaTimeoutMs: positiveInt("OLLAMA_TIMEOUT_MS", 120_000),
   /**
+   * Which API the coach's model speaks: "ollama" (OLLAMA_URL/OLLAMA_MODEL) or "openai" for an
+   * OpenAI-compatible server like vLLM (COACH_LLM_URL/COACH_LLM_MODEL, optional
+   * COACH_LLM_API_KEY). OLLAMA_TIMEOUT_MS applies to both.
+   */
+  coachLlmApi: process.env.COACH_LLM_API === "openai" ? ("openai" as const) : ("ollama" as const),
+  coachLlmUrl: (process.env.COACH_LLM_URL ?? "http://localhost:8000").replace(/\/+$/, "").replace(/\/v1$/, ""),
+  coachLlmModel: process.env.COACH_LLM_MODEL ?? "",
+  coachLlmApiKey: process.env.COACH_LLM_API_KEY || null,
+  /**
    * How many proxies sit between the client and the API, so rate limits key on the real client
    * IP from X-Forwarded-For. 1 = the bundled web container's nginx. Only count proxies you run:
    * trusting more hops than exist lets a client spoof its IP and dodge the limits.

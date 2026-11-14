@@ -57,6 +57,10 @@ Forge is built to face the internet directly (no SSO proxy in front). Before exp
 - **Coach.** Set `OLLAMA_URL` (API env) to an Ollama server the API container can reach, e.g.
   `http://host.docker.internal:11434` for Ollama on the Docker host, and `OLLAMA_MODEL` to a model
   pulled there. Don't expose Ollama itself to the internet: it has no authentication.
+  For an OpenAI-compatible server instead (vLLM, llama.cpp's `llama-server`...), set
+  `COACH_LLM_API=openai`, `COACH_LLM_URL` (base URL, without `/v1`), `COACH_LLM_MODEL` (an id
+  from its `/v1/models`) and, if the server wants one, `COACH_LLM_API_KEY`. It must support
+  `json_schema` structured output.
 - **What's in place.**
   - Rate limits: 300 req/min per IP overall; 60 coach questions per hour per athlete; logins 20 per 15 min per IP, plus 10 *failed* per
     15 min per account from any IP; token refreshes 60 per 15 min per IP. They're in memory, so
